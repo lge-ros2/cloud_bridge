@@ -23,10 +23,22 @@ set up ros2 configuration (ex. topic url, msg type, tf, etc.)
 ```shell
 config/param.yaml
 ```
+#### topic
+```shell
+  scan:
+    topic: "scan"
+    msg: "sensor_msgs/msg/LaserScan"
+```
+#### tf
+```shell
+  map_odom:
+    base_frame: "map"
+    child_frame: "odom"
+```
 
 ### server
 set up manage port and message port for zmq.
-set up ros2 datas from param.yaml
+set up ros2 datas refer to param.yaml
 #### configuration
 ```shell
 config/server.yaml
@@ -36,8 +48,8 @@ config/server.yaml
 ros2 launch cloud_bridge cloud_bridge_server.launch.py
 ```
 ### client
-set up manage port for server connect.
-set up ros2 datas from param.yaml
+set up server ip and manage port for server connect.
+set up ros2 datas refer to param.yaml
 #### configuration
 ```shell
 config/client.yaml
