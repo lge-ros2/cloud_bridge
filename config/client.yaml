@@ -1,0 +1,13 @@
+/**:
+  ros__parameters:
+    cloud_ip: "127.0.0.1"
+    cloud_manage_port: 25565
+
+    sub_list: ["scan", "tf_static", "odom", "imu", "clock", "bt_elev"]
+    # pub_list: ["cmd_vel", "tf", "plan", "footprint", "bt_elev_feedback", "bt_elev_result"]
+    # sub_list: ["scan", "bt_elev", "odom"]
+    # pub_list: ["bt_elev_result"]
+    tf_list: ["odom_basefootprint"]
+    # tf_list: ["odom_basefootprint", "odom_right_wheel"]
+    srv_server_list: ["load_map"]
+    srv_client_list: ["call_elevator", "get_called_elevator", "get_elevator_information", "is_door_opened", "request_door_open", "select_elevator_floor"]
