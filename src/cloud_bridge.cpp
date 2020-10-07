@@ -368,7 +368,7 @@ bool CloudBridge::Connect()
   
   for(unsigned int vi=0; vi<m_vectorSubTopic.size(); vi++) {
     std::string source = m_vectorSubTopic[vi];
-    std::cout << "CloudBridge::"<< __FUNCTION__ << ", add subscriber: " << source << std::endl;
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add subscriber: " << source);
     std::string topic;
     std::string msg;
     topic = declare_parameter(source + "." + "topic", "");
@@ -382,7 +382,7 @@ bool CloudBridge::Connect()
 
   for(unsigned int vi=0; vi<m_vectorPubTopic.size(); vi++) {
     std::string source = m_vectorPubTopic[vi];
-    std::cout << "CloudBridge::"<< __FUNCTION__ << ", add publisher: " << source << std::endl;
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add publisher: " << source);
     std::string topic;
     std::string msg;
     topic = declare_parameter(source + "." + "topic", "");
@@ -401,37 +401,40 @@ bool CloudBridge::Connect()
     baseFrame = declare_parameter(source + "." + "base_frame", "");
     childFrame = declare_parameter(source + "." + "child_frame", "");
 
-    auto tf_buffer = std::make_shared<tf2_ros::Buffer>(m_pNodeHandle->get_clock());
-    auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
     LOG("TransformListen "<< baseFrame << " to " << childFrame);
     if(baseFrame.compare("") != 0 && childFrame.compare("") != 0) {
-      std::string tf_topic_name = "tf_"+source;
-      auto tfPub = m_pNodeHandle->create_publisher<tf2_msgs::msg::TFMessage>(tf_topic_name, rclcpp::SystemDefaultsQoS());
       auto tfThread2 = std::thread(
-        [this](std::shared_ptr<tf2_ros::Buffer> tf_buffer, std::string baseFrame, std::string childFrame) -> void
+        [this](std::string baseFrame, std::string childFrame,  
+              std::vector<std::shared_ptr<tf2_ros::TransformListener>> m_vectorTfListener,
+              std::vector<std::shared_ptr<tf2_ros::Buffer>> m_vectorTfBuffer) -> void
         { 
+          auto tf_buffer = std::make_shared<tf2_ros::Buffer>(m_pNodeHandle->get_clock());
+          auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+          geometry_msgs::msg::TransformStamped last_transform;
           while (m_bRun)
           {
             try {
               tf2::TimePoint tf2_time(std::chrono::nanoseconds(get_clock()->now().nanoseconds()));
               geometry_msgs::msg::TransformStamped transform = 
                 tf_buffer->lookupTransform(baseFrame, childFrame, tf2_time, tf2::durationFromSec(1.0));
-
-              bridge_node_->handle_tf(transform, client);
-              rclcpp::sleep_for(1ms);
+              if(last_transform != transform) {
+                last_transform = transform;
+                bridge_node_->handle_tf(transform, client);
+              }
+              rclcpp::sleep_for(10ms);
             } catch (tf2::TransformException & e) {
               ERROR("Failed to transform :" << e.what());
             }
           }
-        }, tf_buffer, baseFrame, childFrame
+          m_vectorTfListener.push_back(std::move(tf_listener));
+          m_vectorTfBuffer.push_back(std::move(tf_buffer));
+        }, baseFrame, childFrame, m_vectorTfListener, m_vectorTfBuffer
       );
       m_vectorTfThread.push_back(std::move(tfThread2));
-      m_vectorTfListener.push_back(std::move(tf_listener));
-      m_vectorTfBuffer.push_back(std::move(tf_buffer));
       
-      undeclare_parameter(source + "." + "base_frame");
-      undeclare_parameter(source + "." + "child_frame");
     }
+    undeclare_parameter(source + "." + "base_frame");
+    undeclare_parameter(source + "." + "child_frame");
   }
   return true;
 }
