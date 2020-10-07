@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Transfer ROS2 Message to Cloud using ZeroMQ</description>
   <maintainer email="sungkyu.kang@lge.com">sungkyu.kang</maintainer>
-  <license>LGE Internal</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

@@ -9,6 +9,8 @@
  *       LGE Advanced Robotics Laboratory
  *         Copyright(C) 2020 LG Electronics Co., LTD., Seoul, Korea
  *         All Rights are Reserved.
+ *
+ *         SPDX-License-Identifier: MIT
  */
 
 #include "cloud_bridge/cloud_bridge.hpp"

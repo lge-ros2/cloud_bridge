@@ -5,10 +5,12 @@
  *  @brief
  *        Bridge Client class for Cloud Bridge
  *  @remark
- *  @warning
+ *  @copyright
  *       LGE Advanced Robotics Laboratory
  *         Copyright(C) 2019 LG Electronics Co., LTD., Seoul, Korea
  *         All Rights are Reserved.
+ *
+ *         SPDX-License-Identifier: MIT
  */
 
 #include "cloud_bridge/bridge_client.hpp"

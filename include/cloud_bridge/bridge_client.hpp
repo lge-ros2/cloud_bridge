@@ -9,6 +9,8 @@
  *       LGE Advanced Robotics Laboratory
  *         Copyright(C) 2019 LG Electronics Co., LTD., Seoul, Korea
  *         All Rights are Reserved.
+ *
+ *         SPDX-License-Identifier: MIT
  */
 #ifndef _CLOUD_BRIDGE_CLIENT_H_
 #define _CLOUD_BRIDGE_CLIENT_H_
