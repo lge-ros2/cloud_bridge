@@ -5,7 +5,7 @@
  *  @brief
  *        Logging utility for Cloud Bridge
  *  @remark
- *  @warning
+ *  @copyright
  *       LGE Advanced Robotics Laboratory
  *         Copyright(C) 2019 LG Electronics Co., LTD., Seoul, Korea
  *         All Rights are Reserved.

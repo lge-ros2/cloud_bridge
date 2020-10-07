@@ -198,6 +198,10 @@ void BridgeClient::handle_publish()
 
 void BridgeClient::check_topic_data(std::string topic, std::string type)
 {
+  if(topic == "tf") {
+    type = "tf2_msgs/msg/TFMessage";
+  }
+
   for (const auto& td: topicDatas) {
     if(td->topic.compare(topic) == 0 && td->type.compare(type) == 0) {
       return;
