@@ -5,7 +5,7 @@
  *  @brief
  *        Transfer ROS2 message bridge server using ZeroMQ
  *  @remark
- *  @warning
+ *  @copyright
  *       LGE Advanced Robotics Laboratory
  *         Copyright(C) 2020 LG Electronics Co., LTD., Seoul, Korea
  *         All Rights are Reserved.
