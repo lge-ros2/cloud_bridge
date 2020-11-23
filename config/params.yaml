@@ -34,6 +34,18 @@
       topic: "plan"
       msg: "nav_msgs/msg/Path"
 
+    map:
+      topic: "map"
+      msg: "nav_msgs/msg/OccupancyGrid"
+
+    initialpose:
+      topic: "initialpose"
+      msg: "geometry_msgs/msg/PoseWithCovarianceStamped"
+
+    move_simple:
+      topic: "move_base_simple/goal"
+      msg: "geometry_msgs/msg/PoseStamped"
+
     footprint:
       topic: "global_costmap/published_footprint"
       msg: "geometry_msgs/msg/PolygonStamped"
@@ -89,3 +101,11 @@
     bt_elev_result:
       topic: "navigate_with_elevator/result"
       msg: "std_msgs/msg/String"
+
+    bt_elev_cancel:
+      topic: "navigate_with_elevator/cancel"
+      msg: "std_msgs/msg/Empty"
+    
+    nav2_status:
+      topic: "NavigateToPose/_action/status"
+      msg: "action_msgs/msg/GoalStatusArray"

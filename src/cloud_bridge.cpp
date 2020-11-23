@@ -28,13 +28,13 @@ CloudBridge::CloudBridge(string nodeName, bool isBind)
   // Get Parameters for connect
   m_strCloudIp = declare_parameter("cloud_ip", "127.0.0.1");
   if(m_bIsServer) {
-    m_iManagePort = declare_parameter("cloud_manage_port", 25565);
-    m_iSubPort = declare_parameter("cloud_sub_port", 25567);
-    m_iPubPort = declare_parameter("cloud_pub_port", 25568);
-    m_iReqPort = declare_parameter("cloud_req_port", 25569);
-    m_iRepPort = declare_parameter("cloud_rep_port", 25570);
+    m_iManagePort = declare_parameter("manage_port", 25565);
+    m_iSubPort = declare_parameter("sub_port", 25567);
+    m_iPubPort = declare_parameter("pub_port", 25568);
+    m_iReqPort = declare_parameter("req_port", 25569);
+    m_iRepPort = declare_parameter("rep_port", 25570);
   } else {
-    m_iManagePort = declare_parameter("cloud_manage_port", 25565);
+    m_iManagePort = declare_parameter("manage_port", 25565);
   }
 
   // Get Parameters for topic
