@@ -47,6 +47,11 @@ config/server.yaml
 ```shell
 ros2 launch cloud_bridge cloud_bridge_server.launch.py
 ```
+#### run server with commandline param
+
+```shell
+ros2 launch cloud_bridge cloud_bridge_server.launch.py manage_port:=25565 sub_port:=25567 pub_port:=25568
+```
 ### client
 set up server ip and manage port for server connect.
 set up ros2 datas refer to param.yaml
@@ -58,6 +63,11 @@ config/client.yaml
 
 ```shell
 ros2 launch cloud_bridge cloud_bridge_client.launch.py
+```
+#### run client with commandline param
+
+```shell
+ros2 launch cloud_bridge cloud_bridge_client.launch.py cloud_ip:=127.0.0.1 manage_port:=25565
 ```
 ## Version info
 
