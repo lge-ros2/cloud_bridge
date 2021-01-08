@@ -5,6 +5,7 @@
     scan:
       topic: "scan"
       msg: "sensor_msgs/msg/LaserScan"
+      qos: "sensor_data"
 
     tf:
       topic: "tf"
@@ -21,10 +22,12 @@
     cmd_vel:
       topic: "cmd_vel"
       msg: "geometry_msgs/msg/Twist"
+      qos: "sensor_data"
 
     imu:
       topic: "imu"
       msg: "sensor_msgs/msg/Imu"
+      qos: "sensor_data"
 
     clock:
       topic: "/clock"
@@ -33,6 +36,7 @@
     plan:
       topic: "plan"
       msg: "nav_msgs/msg/Path"
+      qos: "sensor_data"
 
     map:
       topic: "map"
@@ -41,10 +45,17 @@
     initialpose:
       topic: "initialpose"
       msg: "geometry_msgs/msg/PoseWithCovarianceStamped"
+      qos: "sensor_data"
 
     move_simple:
       topic: "move_base_simple/goal"
       msg: "geometry_msgs/msg/PoseStamped"
+      qos: "sensor_data"
+
+    goal_pose:
+      topic: "goal_pose"
+      msg: "geometry_msgs/msg/PoseStamped"
+      qos: "sensor_data"
 
     footprint:
       topic: "global_costmap/published_footprint"
@@ -109,3 +120,7 @@
     nav2_status:
       topic: "NavigateToPose/_action/status"
       msg: "action_msgs/msg/GoalStatusArray"
+
+    color_compressed:
+      topic: "front/color/image_raw/compressed"
+      msg: "sensor_msgs/msg/CompressedImage"      

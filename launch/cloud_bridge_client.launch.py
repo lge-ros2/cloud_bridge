@@ -37,29 +37,26 @@ def generate_launch_description():
     rewritten_list = ['cloud_ip', 'manage_port']
     configured_params = get_configured_params(config_filename, rewritten_list)
 
+    param_list_params = get_param_list_params(param_filename)
+
     # Get namespace in argument
     namespace = find_robot_name()
     
     # Set remapping topic tuple list
     remapping_list = set_remapping_list(remap_topic_list)
 
-    # Create environment variables
-    stdout_linebuf_envvar = launch.actions.SetEnvironmentVariable(
-        'RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1')
-
     # Create actions nodes
     cloud_trans_client_node = launch_ros.actions.Node(
         package='cloud_bridge',
-        node_executable='cloud_bridge_client',
-        node_namespace=namespace,
+        executable='cloud_bridge_client',
+        namespace=namespace,
         remappings=remapping_list,
-        parameters=[configured_params, param_filename],
+        parameters=[configured_params, param_filename, param_list_params],
         output='screen')
 
     # Create the launch description and populate
     ld = launch.LaunchDescription()
 
-    ld.add_action(stdout_linebuf_envvar)
     ld.add_action(cloud_trans_client_node)
 
     return ld

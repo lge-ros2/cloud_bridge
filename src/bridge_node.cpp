@@ -127,7 +127,6 @@ void BridgeNode::execute()
             }
         }
 
-        // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ << ", sub_count: " << sub_count);
         for (const auto &it : subscribers)
         {
             size_t index;
@@ -141,25 +140,47 @@ void BridgeNode::execute()
         rc = rcl_wait(&wait, RCL_MS_TO_NS(timeout)); // 요기가 문제!
         if (rc == RCL_RET_TIMEOUT)
         {
-            // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ << ", rc == RCL_RET_TIMEOUT");
             continue;
         }
         if (rc != RCL_RET_OK)
         {
-            // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__<<", rc != RCL_RET_OK");
             ERROR("rcl_wait failed: " << rc);
         }
-        // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ << ", RCL_RET_OK");
         for (size_t i = 0; i < sub_count; i++)
         {
             if (wait.subscriptions[i])
             {
                 Subscriber *sub = (Subscriber *)wait.subscriptions[i];
-                // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ <<", topic: " << sub->topic);
                 handle_message(sub);
             }
         }
     }
+}
+
+rmw_qos_profile_t BridgeNode::parseQosString(std::string qos_string)
+{
+  rmw_qos_profile_t qos = rmw_qos_profile_default;
+  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  if(qos_string == "sensor_data") {
+    LOG("parseQosString rmw_qos_profile_sensor_data");
+    qos = rmw_qos_profile_sensor_data;
+  } else if(qos_string == "parameters") {
+    LOG("parseQosString rmw_qos_profile_parameters");
+    qos = rmw_qos_profile_parameters;
+  } else if(qos_string == "parameter_events") {
+    LOG("parseQosString rmw_qos_profile_parameter_events");
+    qos = rmw_qos_profile_parameter_events;
+  } else if(qos_string == "system_default") {
+    LOG("parseQosString rmw_qos_profile_system_default");
+    qos = rmw_qos_profile_system_default;
+  } else if(qos_string == "services_default") {
+    LOG("parseQosString rmw_qos_profile_services_default");
+    qos = rmw_qos_profile_services_default;
+  } else{
+    LOG("parseQosString rmw_qos_profile_default");
+  }
+
+  return qos;
 }
 
 void BridgeNode::remove(BridgeClient *client)
@@ -231,7 +252,8 @@ void BridgeNode::remove(BridgeClient *client)
     }
 }
 
-void BridgeNode::add_subscriber(const std::string &topic, const std::string &type, BridgeClient *client)
+void BridgeNode::add_subscriber(const std::string &topic, const std::string &type,
+    BridgeClient *client, std::string &qos)
 {
     const MessageType *message_type = types.get(type);
     if (message_type == NULL)
@@ -256,7 +278,8 @@ void BridgeNode::add_subscriber(const std::string &topic, const std::string &typ
         s->clients.insert(client);
 
         rcl_subscription_options_t sub_opt = rcl_subscription_get_default_options();
-        sub_opt.qos = rmw_qos_profile_sensor_data;
+        sub_opt.qos = parseQosString(qos);
+
         rcl_ret_t rc = rcl_subscription_init(&s->sub, &node, message_type->type_support, topic.c_str(), &sub_opt);
         if (rc != RCL_RET_OK)
         {
@@ -274,7 +297,8 @@ void BridgeNode::add_subscriber(const std::string &topic, const std::string &typ
     actions.push(action);
 }
 
-void BridgeNode::add_publisher(const std::string &topic, const std::string &type, BridgeClient *client)
+void BridgeNode::add_publisher(const std::string &topic, const std::string &type,
+    BridgeClient *client, std::string &qos)
 {
     auto it = publishers.find(topic);
     if (it != publishers.end())
@@ -291,6 +315,7 @@ void BridgeNode::add_publisher(const std::string &topic, const std::string &type
 
     rcl_publisher_t pub = rcl_get_zero_initialized_publisher();
     rcl_publisher_options_t pub_opt = rcl_publisher_get_default_options();
+    pub_opt.qos = parseQosString(qos);
 
     rcl_ret_t rc = rcl_publisher_init(&pub, &node, message_type->type_support, topic.c_str(), &pub_opt);
     if (rc != RCL_RET_OK)
@@ -327,6 +352,7 @@ void BridgeNode::publish(const std::string &topic, const std::vector<uint8_t> &d
             ERROR("failed to serialize serialized message topic tf");
             return;
         }
+        DEBUG("BridgeNode::publish tf_broadcaster_->sendTransform");
         tf_broadcaster_->sendTransform(*transform_msg);
     }
     else
@@ -349,6 +375,7 @@ void BridgeNode::publish(const std::string &topic, const std::vector<uint8_t> &d
                 DEBUG("Unserializing message for " << topic << " topic");
                 if (Unserialize(msg, type->introspection, data))
                 {
+                    DEBUG("BridgeNode::publish rcl_publish topic "<< topic);
                     rcl_ret_t rc = rcl_publish(pub, msg, NULL);
                     if (rc != RCL_RET_OK)
                     {
@@ -408,8 +435,8 @@ void BridgeNode::handle_tf(geometry_msgs::msg::TransformStamped& transform, Brid
     }
     std::vector<uint8_t> data;
     data.insert(data.end(), serialized_msg_.buffer, serialized_msg_.buffer + serialized_msg_.buffer_length);
+    DEBUG("bridgeNode::handle_message handle_tf publish client->publish");
     client->publish("tf", "geometry_msgs/TransformStamped", data);
-    // Send(serialized_msg_.buffer, serialized_msg_.buffer_length, false, hashKey);
 }
 
 void BridgeNode::handle_message(Subscriber *sub)
@@ -434,19 +461,9 @@ void BridgeNode::handle_message(Subscriber *sub)
                 Serialize(msg, sub->type->introspection, data);
 
                 std::string target_topic = sub->topic;
-                if (sub->type->type_string == "tf2_msgs/TFMessage")
-                {
-                    for (auto tf_topic : tf_topics)
-                    {
-                        if (target_topic == tf_topic)
-                        {
-                            target_topic = "tf";
-                            break;
-                        }
-                    }
-                }
                 for (auto client : sub->clients)
                 {
+                    LOG("BridgeNode::handle_message client->publish topic: " << sub->topic);
                     client->publish(target_topic, sub->type->type_string, data);
                 }
             }

@@ -25,7 +25,6 @@ find_package(rmw REQUIRED)
 find_package(rcl REQUIRED)
 
 set(DEPENDENCIES 
-  "Boost"
   "rclcpp"
   "geometry_msgs"
   "tf2_ros"

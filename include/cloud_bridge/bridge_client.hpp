@@ -15,6 +15,7 @@
 #ifndef _CLOUD_BRIDGE_CLIENT_H_
 #define _CLOUD_BRIDGE_CLIENT_H_
 
+#include <map>
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -35,6 +36,7 @@ public:
     void stop();
 
     void publish(const std::string& topic, const std::string &type, const std::vector<uint8_t>& msg);
+    void set_qos_map(std::map<std::string, std::string> map);
 
 private:
     struct TopicData
@@ -54,6 +56,7 @@ private:
 
     uint8_t temp[1024*1024];
     std::vector<uint8_t> buffer;
+    std::map<std::string, std::string> qos_map;
 
     void handle_read();
     bool receive_zmq(void** buffer, int& bufferLength);

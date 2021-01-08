@@ -12,6 +12,9 @@
     - clock
     - bt_elev
     - bt_elev_cancel
+    - color_compressed
+    - move_simple
+    - goal_pose
     tf_list:
     - odom_basefootprint
     srv_server_list:

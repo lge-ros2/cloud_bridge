@@ -38,6 +38,7 @@ public:
 
 private:
   void initBridgeNode();
+  void initBridgeParams();
   void DeinitSimConnection();
   void InitSimConnection();
   bool Setup();
@@ -77,6 +78,7 @@ private:
 
   std::vector<std::string> m_vectorSubTopic;
   std::vector<std::string> m_vectorPubTopic;
+  std::vector<std::string> m_vectorParams;
   std::vector<std::string> m_vectorSrvServer;
   std::vector<std::string> m_vectorSrvClient;
 

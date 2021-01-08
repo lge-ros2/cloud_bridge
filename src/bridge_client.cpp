@@ -108,7 +108,7 @@ void BridgeClient::handle_add_subscriber()
 
   DEBUG("OP_ADD_SUBSCRIBER, topic = " << topic << ", type = " << type);
 
-  node.add_subscriber(topic, type, this);
+  // node.add_subscriber(topic, type, this);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
@@ -147,7 +147,7 @@ void BridgeClient::handle_add_publisher()
 
   DEBUG("OP_ADD_PUBLISHER, topic = " << topic << ", type = " << type);
 
-  node.add_publisher(topic, type, this);
+  // node.add_publisher(topic, type, this);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
@@ -212,7 +212,21 @@ void BridgeClient::check_topic_data(std::string topic, std::string type)
   topicData->topic = topic;
   topicData->type = type;
   topicDatas.insert(topicData);
-  node.add_publisher(topic, type, this);
+
+  std::map<std::string, std::string>::iterator iter;
+  std::string qos = "default";
+  // for(iter = qos_map.begin(); iter != qos_map.end(); iter++){
+  //   if(topic == iter->first) {
+  //     qos = iter->second;
+  //   }
+  // }
+  LOG("add_publisher topic: " << topic << ", type: " << type << ", qos_string: "<< qos);
+  node.add_publisher(topic, type, this, qos);
+}
+
+void BridgeClient::set_qos_map(std::map<std::string, std::string> map)
+{
+  this->qos_map = map;
 }
 
 void BridgeClient::publish(const std::string &topic, const std::string &type, const std::vector<uint8_t> &msg)

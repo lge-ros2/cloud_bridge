@@ -160,4 +160,12 @@ def get_configured_params(config_filename, rewritten_list):
         source_file=config_filename, rewrites=param_substitutions,
         convert_types=True)
 
-    
+def get_param_list_params(param_filename):
+    result = {}
+    param_list = []
+    data = yaml.safe_load(open(param_filename, 'r'))
+    for key in data['/**']['ros__parameters']:
+        param_list.append(key)
+
+    result['param_list'] = param_list
+    return result
