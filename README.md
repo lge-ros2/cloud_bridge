@@ -73,3 +73,4 @@ ros2 launch cloud_bridge cloud_bridge_client.launch.py cloud_ip:=127.0.0.1 manag
 
 - Please refer to each branch for ROS2 distro-version you want
   - [dashing](https://github.com/lge-ros2/cloud_bridge/tree/dashing)
+  - [foxy](https://github.com/lge-ros2/cloud_bridge/tree/foxy)
