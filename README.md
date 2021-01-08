@@ -1,4 +1,4 @@
-# cloud_bridge (dashing version)
+# cloud_bridge (foxy version)
 
 ROS2 message bridge between networks using zmq library
 
@@ -63,3 +63,4 @@ ros2 launch cloud_bridge cloud_bridge_client.launch.py
 
 - Please refer to each branch for ROS2 distro-version you want
   - [dashing](https://github.com/lge-ros2/cloud_bridge/tree/dashing)
+  - [foxy](https://github.com/lge-ros2/cloud_bridge/tree/foxy)
