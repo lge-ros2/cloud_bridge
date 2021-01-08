@@ -28,6 +28,7 @@ config/param.yaml
   scan:
     topic: "scan"
     msg: "sensor_msgs/msg/LaserScan"
+    qos: "sensor_data"
 ```
 #### tf
 ```shell
