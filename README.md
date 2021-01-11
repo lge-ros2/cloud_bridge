@@ -3,7 +3,7 @@
 ROS2 message bridge between networks using zmq library
 
 ## rosdep install 
-
+in workspace home
 ```shell
 rosdep install -y -r -q --from-paths src --ignore-src --rosdistro dashing
 ```
