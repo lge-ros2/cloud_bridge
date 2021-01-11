@@ -109,3 +109,11 @@
     nav2_status:
       topic: "NavigateToPose/_action/status"
       msg: "action_msgs/msg/GoalStatusArray"
+
+    front_color_compressed:
+      topic: "front/camera/color/image_raw/compressed"
+      msg: "sensor_msgs/msg/CompressedImage"
+
+    front_color:
+      topic: "front/camera/color/image_raw"
+      msg: "sensor_msgs/msg/Image"       

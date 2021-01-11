@@ -127,7 +127,6 @@ void BridgeNode::execute()
             }
         }
 
-        // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ << ", sub_count: " << sub_count);
         for (const auto &it : subscribers)
         {
             size_t index;
@@ -138,24 +137,20 @@ void BridgeNode::execute()
             }
         }
 
-        rc = rcl_wait(&wait, RCL_MS_TO_NS(timeout)); // 요기가 문제!
+        rc = rcl_wait(&wait, RCL_MS_TO_NS(timeout));
         if (rc == RCL_RET_TIMEOUT)
         {
-            // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ << ", rc == RCL_RET_TIMEOUT");
             continue;
         }
         if (rc != RCL_RET_OK)
         {
-            // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__<<", rc != RCL_RET_OK");
             ERROR("rcl_wait failed: " << rc);
         }
-        // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ << ", RCL_RET_OK");
         for (size_t i = 0; i < sub_count; i++)
         {
             if (wait.subscriptions[i])
             {
                 Subscriber *sub = (Subscriber *)wait.subscriptions[i];
-                // LOG("BridgeNode::" <<__FUNCTION__ << ":::" << __LINE__ <<", topic: " << sub->topic);
                 handle_message(sub);
             }
         }
@@ -257,6 +252,7 @@ void BridgeNode::add_subscriber(const std::string &topic, const std::string &typ
 
         rcl_subscription_options_t sub_opt = rcl_subscription_get_default_options();
         sub_opt.qos = rmw_qos_profile_sensor_data;
+        sub_opt.qos.depth = 1;
         rcl_ret_t rc = rcl_subscription_init(&s->sub, &node, message_type->type_support, topic.c_str(), &sub_opt);
         if (rc != RCL_RET_OK)
         {

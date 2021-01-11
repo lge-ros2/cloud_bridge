@@ -12,6 +12,7 @@
     - clock
     - bt_elev
     - bt_elev_cancel
+    - front_color_compressed
     tf_list:
     - odom_basefootprint
     srv_server_list:

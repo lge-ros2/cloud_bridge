@@ -50,6 +50,8 @@ public:
     void handle_tf(geometry_msgs::msg::TransformStamped& transform, BridgeClient* client);
 
 private:
+    volatile bool running;
+    
     rcl_allocator_t* alloc;
     rcl_context_t* context;
     rcl_node_t node;
@@ -59,7 +61,6 @@ private:
     std::mutex mutex;
     std::queue<std::function<void()>> actions;
 
-    volatile bool running;
     std::thread thread;
     struct Publisher
     {
