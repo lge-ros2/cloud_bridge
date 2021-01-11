@@ -12,7 +12,7 @@ rosdep install -y -r -q --from-paths src --ignore-src --rosdistro foxy
 Please setup ROS2 environment first!
 
 ```shell
-source /opt/ros/dashing/setup.bash
+source /opt/ros/foxy/setup.bash
 colcon build --packages-up-to cloud_bridge
 ```
 
