@@ -2,10 +2,10 @@
 
 ROS2 message bridge between networks using zmq library
 
-## Prerequisite
-
+## rosdep install
+in workspace home
 ```shell
-sudo apt-get install libzmq3-dev
+rosdep install -y -r -q --from-paths src --ignore-src --rosdistro foxy
 ```
 ## Build
 
