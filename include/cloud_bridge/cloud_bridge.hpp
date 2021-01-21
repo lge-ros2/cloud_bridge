@@ -38,6 +38,7 @@ public:
 
 private:
   void initBridgeNode();
+  void initBridgeParams();
   void DeinitSimConnection();
   void InitSimConnection();
   bool Setup();
@@ -77,6 +78,7 @@ private:
 
   std::vector<std::string> m_vectorSubTopic;
   std::vector<std::string> m_vectorPubTopic;
+  std::vector<std::string> m_vectorParams;
   std::vector<std::string> m_vectorSrvServer;
   std::vector<std::string> m_vectorSrvClient;
 
@@ -95,14 +97,8 @@ private:
   std::thread m_threadManageProc;
 
   zmq_msg_t m_pManageMsg;
-  zmq_msg_t m_pSubMsg;
-  zmq_msg_t m_pReqMsg;
-  zmq_msg_t m_pRepMsg;
-
-  int m_iRetryRequestTime;
 
   std::mutex m_mutexManage;
-  std::mutex m_mutexSend;
 
   std::vector<std::string> m_vectorTfLookup;
   std::vector<std::thread> m_vectorTfThread;

@@ -13,14 +13,15 @@
     - bt_elev_feedback
     - bt_elev_result
     - nav2_status
-    tf_list:
-    - map_odom
-    srv_server_list:
-    - call_elevator
-    - get_called_elevator
-    - get_elevator_information
-    - is_door_opened
-    - request_door_open
-    - select_elevator_floor
+    # tf_list:
+    # - map_odom
+    # srv_server_list:
+    # - call_elevator
+    # - get_called_elevator
+    # - get_elevator_information
+    # - is_door_opened
+    # - request_door_open
+    # - select_elevator_floor
     srv_client_list:
-    - load_map
+    # - load_map
+    - add_two_ints

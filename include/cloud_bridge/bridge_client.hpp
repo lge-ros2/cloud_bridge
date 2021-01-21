@@ -15,6 +15,7 @@
 #ifndef _CLOUD_BRIDGE_CLIENT_H_
 #define _CLOUD_BRIDGE_CLIENT_H_
 
+#include <map>
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -28,13 +29,18 @@ class BridgeNode;
 class BridgeClient
 {
 public:
-    BridgeClient(BridgeNode& node, void* m_pPubSocket, void* m_pSubSocket);
+    BridgeClient(BridgeNode& node, 
+        void* m_pPubSocket, void* m_pSubSocket,
+        void* m_pReqSocket, void* m_pRepSocket);
     ~BridgeClient();
 
     void start();
     void stop();
 
     void publish(const std::string& topic, const std::string &type, const std::vector<uint8_t>& msg);
+    void send_request(const std::string& topic, const std::string &type, 
+        const std::vector<uint8_t>& req_msg, const std::vector<uint8_t>& res_msg);
+    void set_qos_map(std::map<std::string, std::string> map);
 
 private:
     struct TopicData
@@ -47,6 +53,8 @@ private:
     BridgeNode& node;
     void* m_pPubSocket;
     void* m_pSubSocket;
+    void* m_pReqSocket;
+    void* m_pRepSocket;
     zmq_msg_t m_pMsgSub;
 
     std::thread m_threadProc;
@@ -54,6 +62,7 @@ private:
 
     uint8_t temp[1024*1024];
     std::vector<uint8_t> buffer;
+    std::map<std::string, std::string> qos_map;
 
     void handle_read();
     bool receive_zmq(void** buffer, int& bufferLength);
@@ -62,6 +71,8 @@ private:
     void handle_add_subscriber();
     void handle_add_publisher();
     void handle_publish();
+
+    // void handle_service();
 
     void check_topic_data(std::string topic, std::string type);
 

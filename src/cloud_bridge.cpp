@@ -37,6 +37,10 @@ CloudBridge::CloudBridge(string nodeName, bool isBind)
     m_iManagePort = declare_parameter("manage_port", 25565);
   }
 
+  // Get Parameters for common parameters
+  std::vector<string> deault_param_list;
+  m_vectorParams = declare_parameter("param_list", deault_param_list);
+
   // Get Parameters for topic
   std::vector<string> deault_sub_list;
   std::vector<string> deault_pub_list;
@@ -54,6 +58,7 @@ CloudBridge::CloudBridge(string nodeName, bool isBind)
 
   Setup();
   initBridgeNode();
+  initBridgeParams();
   Connect();
   Start();
 }
@@ -66,7 +71,6 @@ CloudBridge::~CloudBridge()
   {
     m_threadProc.join();
   }
-  zmq_msg_close(&m_pSubMsg);
 
   rcl_ret_t rc;
   rcl_init_options_t init = rcl_get_zero_initialized_init_options();
@@ -96,18 +100,6 @@ bool CloudBridge::Setup()
 
   if (zmq_msg_init(&m_pManageMsg) < 0) {
     ERROR("manage msg init failed:" << std::string(zmq_strerror(zmq_errno())));
-    return false;
-  }
-  if (zmq_msg_init(&m_pSubMsg) < 0) {
-    ERROR("sub msg init failed:" << std::string(zmq_strerror(zmq_errno())));
-    return false;
-  }
-  if (zmq_msg_init(&m_pReqMsg) < 0) {
-    ERROR("req msg init failed:" << std::string(zmq_strerror(zmq_errno())));
-    return false;
-  }
-  if (zmq_msg_init(&m_pRepMsg) < 0) {
-    ERROR("res msg init failed:" << std::string(zmq_strerror(zmq_errno())));
     return false;
   }
 
@@ -296,6 +288,138 @@ void CloudBridge::initBridgeNode() {
   bridge_node_ = new BridgeNode(&bridge_node_alloc_, &bridge_node_context_, get_namespace());
 }
 
+void CloudBridge::initBridgeParams() {
+  client = new BridgeClient(*bridge_node_, 
+    m_pPubSocket, m_pSubSocket,
+    m_pReqSocket, m_pRepSocket);
+
+  std::map<std::string, std::string> qos_map;
+  for(unsigned int vi=0; vi<m_vectorParams.size(); vi++) {
+    std::string source = m_vectorParams[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add params for qos: " << source);
+    std::string topic;
+    std::string qos;
+    topic = declare_parameter(source + "." + "topic", "");
+    qos = declare_parameter(source + "." + "qos", "");
+    LOG("  - topic: " << topic << ", qos_string: "<< qos);
+    if(topic.compare("") != 0 && qos.compare("") != 0) {
+      qos_map.insert(make_pair(topic, qos));
+    }
+    undeclare_parameter(source + "." + "topic");
+    undeclare_parameter(source + "." + "qos");
+  }
+  client->set_qos_map(qos_map);
+  
+  for(unsigned int vi=0; vi<m_vectorSubTopic.size(); vi++) {
+    std::string source = m_vectorSubTopic[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add subscriber: " << source);
+    std::string topic;
+    std::string msg;
+    std::string qos;
+    topic = declare_parameter(source + "." + "topic", "");
+    msg = declare_parameter(source + "." + "msg", "");
+    qos = declare_parameter(source + "." + "qos", "");
+    LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+    if(topic.compare("") != 0 && msg.compare("") != 0) {
+      bridge_node_->add_subscriber(topic, msg, client, qos);
+    }
+    undeclare_parameter(source + "." + "topic");
+    undeclare_parameter(source + "." + "msg");
+    undeclare_parameter(source + "." + "qos");
+  }
+
+  for(unsigned int vi=0; vi<m_vectorPubTopic.size(); vi++) {
+    std::string source = m_vectorPubTopic[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add publisher: " << source);
+    std::string topic;
+    std::string msg;
+    std::string qos;
+    topic = declare_parameter(source + "." + "topic", "");
+    msg = declare_parameter(source + "." + "msg", "");
+    qos = declare_parameter(source + "." + "qos", "");
+    LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+    if(topic.compare("") != 0 && msg.compare("") != 0) {
+      bridge_node_->add_publisher(topic, msg, client, qos);
+    }
+    undeclare_parameter(source + "." + "topic");
+    undeclare_parameter(source + "." + "msg");
+    undeclare_parameter(source + "." + "qos");
+  }
+
+  for(unsigned int vi=0; vi<m_vectorSrvServer.size(); vi++) {
+    std::string source = m_vectorSrvServer[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add srv server: " << source);
+    std::string service;
+    std::string srv;
+    service = declare_parameter(source + "." + "service", "");
+    srv = declare_parameter(source + "." + "srv", "");
+    LOG("  - service: " << service << ", type: " << srv);
+    if(service.compare("") != 0 && srv.compare("") != 0) {
+      bridge_node_->add_service_server(service, srv, client);
+    }
+    undeclare_parameter(source + "." + "service");
+    undeclare_parameter(source + "." + "srv");
+  }
+
+  for(unsigned int vi=0; vi<m_vectorSrvClient.size(); vi++) {
+    std::string source = m_vectorSrvClient[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add srv client: " << source);
+    std::string service;
+    std::string srv;
+    service = declare_parameter(source + "." + "service", "");
+    srv = declare_parameter(source + "." + "srv", "");
+    LOG("  - service: " << service << ", type: " << srv);
+    if(service.compare("") != 0 && srv.compare("") != 0) {
+      bridge_node_->add_service_client(service, srv, client);
+    }
+    undeclare_parameter(source + "." + "service");
+    undeclare_parameter(source + "." + "srv");
+  }
+
+  for(unsigned int vi=0; vi<m_vectorTfLookup.size(); vi++) {
+    std::string source = m_vectorTfLookup[vi];
+    std::string baseFrame;
+    std::string childFrame;
+    baseFrame = declare_parameter(source + "." + "base_frame", "");
+    childFrame = declare_parameter(source + "." + "child_frame", "");
+
+    LOG("TransformListen "<< baseFrame << " to " << childFrame);
+    if(baseFrame.compare("") != 0 && childFrame.compare("") != 0) {
+      auto tfThread2 = std::thread(
+        [this](std::string baseFrame, std::string childFrame,  
+              std::vector<std::shared_ptr<tf2_ros::TransformListener>> m_vectorTfListener,
+              std::vector<std::shared_ptr<tf2_ros::Buffer>> m_vectorTfBuffer) -> void
+        { 
+          auto tf_buffer = std::make_shared<tf2_ros::Buffer>(m_pNodeHandle->get_clock());
+          auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+          geometry_msgs::msg::TransformStamped last_transform;
+          while (m_bRun)
+          {
+            try {
+              tf2::TimePoint tf2_time(std::chrono::nanoseconds(get_clock()->now().nanoseconds()));
+              geometry_msgs::msg::TransformStamped transform = 
+                tf_buffer->lookupTransform(baseFrame, childFrame, tf2_time, tf2::durationFromSec(1.0));
+              if(last_transform != transform) {
+                last_transform = transform;
+                bridge_node_->handle_tf(transform, client);
+              }
+              rclcpp::sleep_for(10ms);
+            } catch (tf2::TransformException & e) {
+              ERROR("Failed to transform :" << e.what());
+            }
+          }
+          m_vectorTfListener.push_back(std::move(tf_listener));
+          m_vectorTfBuffer.push_back(std::move(tf_buffer));
+        }, baseFrame, childFrame, m_vectorTfListener, m_vectorTfBuffer
+      );
+      m_vectorTfThread.push_back(std::move(tfThread2));
+      
+    }
+    undeclare_parameter(source + "." + "base_frame");
+    undeclare_parameter(source + "." + "child_frame");
+  }
+}
+
 bool CloudBridge::Connect() 
 {
   if(m_bIsServer) {
@@ -362,79 +486,6 @@ bool CloudBridge::Connect()
   if (zmq_setsockopt(m_pSubSocket, ZMQ_SUBSCRIBE, "", 0))
   {
     ERROR("SetSock Err:" << std::string(zmq_strerror(zmq_errno())));
-  }
-
-  client = new BridgeClient(*bridge_node_, m_pPubSocket, m_pSubSocket);
-  
-  for(unsigned int vi=0; vi<m_vectorSubTopic.size(); vi++) {
-    std::string source = m_vectorSubTopic[vi];
-    LOG("CloudBridge::"<< __FUNCTION__ << ", add subscriber: " << source);
-    std::string topic;
-    std::string msg;
-    topic = declare_parameter(source + "." + "topic", "");
-    msg = declare_parameter(source + "." + "msg", "");
-    if(topic.compare("") != 0 && msg.compare("") != 0) {
-      bridge_node_->add_subscriber(topic, msg, client);
-    }
-    undeclare_parameter(source + "." + "topic");
-    undeclare_parameter(source + "." + "msg");
-  }
-
-  for(unsigned int vi=0; vi<m_vectorPubTopic.size(); vi++) {
-    std::string source = m_vectorPubTopic[vi];
-    LOG("CloudBridge::"<< __FUNCTION__ << ", add publisher: " << source);
-    std::string topic;
-    std::string msg;
-    topic = declare_parameter(source + "." + "topic", "");
-    msg = declare_parameter(source + "." + "msg", "");
-    if(topic.compare("") != 0 && msg.compare("") != 0) {
-      bridge_node_->add_publisher(topic, msg, client);
-    }
-    undeclare_parameter(source + "." + "topic");
-    undeclare_parameter(source + "." + "msg");
-  }
-
-  for(unsigned int vi=0; vi<m_vectorTfLookup.size(); vi++) {
-    std::string source = m_vectorTfLookup[vi];
-    std::string baseFrame;
-    std::string childFrame;
-    baseFrame = declare_parameter(source + "." + "base_frame", "");
-    childFrame = declare_parameter(source + "." + "child_frame", "");
-
-    LOG("TransformListen "<< baseFrame << " to " << childFrame);
-    if(baseFrame.compare("") != 0 && childFrame.compare("") != 0) {
-      auto tfThread2 = std::thread(
-        [this](std::string baseFrame, std::string childFrame,  
-              std::vector<std::shared_ptr<tf2_ros::TransformListener>> m_vectorTfListener,
-              std::vector<std::shared_ptr<tf2_ros::Buffer>> m_vectorTfBuffer) -> void
-        { 
-          auto tf_buffer = std::make_shared<tf2_ros::Buffer>(m_pNodeHandle->get_clock());
-          auto tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-          geometry_msgs::msg::TransformStamped last_transform;
-          while (m_bRun)
-          {
-            try {
-              tf2::TimePoint tf2_time(std::chrono::nanoseconds(get_clock()->now().nanoseconds()));
-              geometry_msgs::msg::TransformStamped transform = 
-                tf_buffer->lookupTransform(baseFrame, childFrame, tf2_time, tf2::durationFromSec(1.0));
-              if(last_transform != transform) {
-                last_transform = transform;
-                bridge_node_->handle_tf(transform, client);
-              }
-              rclcpp::sleep_for(10ms);
-            } catch (tf2::TransformException & e) {
-              ERROR("Failed to transform :" << e.what());
-            }
-          }
-          m_vectorTfListener.push_back(std::move(tf_listener));
-          m_vectorTfBuffer.push_back(std::move(tf_buffer));
-        }, baseFrame, childFrame, m_vectorTfListener, m_vectorTfBuffer
-      );
-      m_vectorTfThread.push_back(std::move(tfThread2));
-      
-    }
-    undeclare_parameter(source + "." + "base_frame");
-    undeclare_parameter(source + "." + "child_frame");
   }
   return true;
 }

@@ -29,10 +29,14 @@ enum
   OP_PUBLISH = 3,
 };
 
-BridgeClient::BridgeClient(BridgeNode &node, void *pubSocket, void *subSocket)
+BridgeClient::BridgeClient(BridgeNode &node, 
+  void *pubSocket, void *subSocket,
+  void *reqSocket, void *repSocket)
     : node(node),
       m_pPubSocket(pubSocket),
-      m_pSubSocket(subSocket)
+      m_pSubSocket(subSocket),
+      m_pReqSocket(subSocket),
+      m_pRepSocket(subSocket)
 {
 }
 
@@ -108,7 +112,7 @@ void BridgeClient::handle_add_subscriber()
 
   DEBUG("OP_ADD_SUBSCRIBER, topic = " << topic << ", type = " << type);
 
-  node.add_subscriber(topic, type, this);
+  // node.add_subscriber(topic, type, this);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
@@ -147,7 +151,7 @@ void BridgeClient::handle_add_publisher()
 
   DEBUG("OP_ADD_PUBLISHER, topic = " << topic << ", type = " << type);
 
-  node.add_publisher(topic, type, this);
+  // node.add_publisher(topic, type, this);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
@@ -212,7 +216,21 @@ void BridgeClient::check_topic_data(std::string topic, std::string type)
   topicData->topic = topic;
   topicData->type = type;
   topicDatas.insert(topicData);
-  node.add_publisher(topic, type, this);
+
+  std::map<std::string, std::string>::iterator iter;
+  std::string qos = "default";
+  // for(iter = qos_map.begin(); iter != qos_map.end(); iter++){
+  //   if(topic == iter->first) {
+  //     qos = iter->second;
+  //   }
+  // }
+  LOG("add_publisher topic: " << topic << ", type: " << type << ", qos_string: "<< qos);
+  node.add_publisher(topic, type, this, qos);
+}
+
+void BridgeClient::set_qos_map(std::map<std::string, std::string> map)
+{
+  this->qos_map = map;
 }
 
 void BridgeClient::publish(const std::string &topic, const std::string &type, const std::vector<uint8_t> &msg)
@@ -281,4 +299,26 @@ bool BridgeClient::send_zmq(const void *buffer, const int bufferLength)
   }
   zmq_msg_close(&msg);
   return true;
+}
+
+void BridgeClient::send_request(const std::string &topic, const std::string &type, 
+  const std::vector<uint8_t> &req_msg,const std::vector<uint8_t> &res_msg)
+{
+  DEBUG("SEND_REQUEST, topic = " << topic);
+  std::vector<uint8_t> data;
+  data.reserve(sizeof(uint32_t) + topic.size() + sizeof(uint32_t) + type.size() +sizeof(uint32_t) + req_msg.size());
+
+  data.push_back(uint8_t(topic.size() >> 0));
+  data.push_back(uint8_t(topic.size() >> 8));
+  data.push_back(uint8_t(topic.size() >> 16));
+  data.push_back(uint8_t(topic.size() >> 24));
+  data.insert(data.end(), (uint8_t *)topic.data(), (uint8_t *)topic.data() + topic.size());
+
+  data.push_back(uint8_t(req_msg.size() >> 0));
+  data.push_back(uint8_t(req_msg.size() >> 8));
+  data.push_back(uint8_t(req_msg.size() >> 16));
+  data.push_back(uint8_t(req_msg.size() >> 24));
+  data.insert(data.end(), req_msg.data(), req_msg.data() + req_msg.size());
+
+  // send_zmq(data.data(), data.size());
 }

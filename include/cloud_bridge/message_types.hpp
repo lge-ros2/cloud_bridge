@@ -22,11 +22,13 @@
 #include <unordered_map>
 
 #include <rosidl_generator_c/message_type_support_struct.h>
+#include <rosidl_generator_c/service_type_support_struct.h>
 
 struct MessageType
 {
     const rosidl_message_type_support_t* type_support;
     const rosidl_message_type_support_t* introspection;
+    const rosidl_service_type_support_t* srv_type_support;
 
     std::string type_string;
     size_t size;
@@ -41,7 +43,8 @@ public:
     ~MessageTypes();
 
     // thread-safe
-    const MessageType* get(const std::string& type);
+    const MessageType* get(const std::string& type, const std::string& category="message");
+    const rosidl_service_type_support_t* get_srv_type_support(const std::string& type);
 
 private:
     typedef std::unordered_map<std::string, void*> Libraries;
