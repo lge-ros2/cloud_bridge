@@ -1,0 +1,126 @@
+/**:
+  ros__parameters:
+    use_sim_time: True
+    
+    scan:
+      topic: "scan"
+      msg: "sensor_msgs/msg/LaserScan"
+      qos: "sensor_data"
+
+    tf:
+      topic: "tf"
+      msg: "tf2_msgs/msg/TFMessage"
+
+    tf_static:
+      topic: "tf_static"
+      msg: "tf2_msgs/msg/TFMessage"
+
+    odom:
+      topic: "odom"
+      msg: "nav_msgs/msg/Odometry"
+
+    cmd_vel:
+      topic: "cmd_vel"
+      msg: "geometry_msgs/msg/Twist"
+      qos: "sensor_data"
+
+    imu:
+      topic: "imu"
+      msg: "sensor_msgs/msg/Imu"
+      qos: "sensor_data"
+
+    clock:
+      topic: "/clock"
+      msg: "rosgraph_msgs/msg/Clock"
+
+    plan:
+      topic: "plan"
+      msg: "nav_msgs/msg/Path"
+      qos: "sensor_data"
+
+    map:
+      topic: "map"
+      msg: "nav_msgs/msg/OccupancyGrid"
+
+    initialpose:
+      topic: "initialpose"
+      msg: "geometry_msgs/msg/PoseWithCovarianceStamped"
+      qos: "sensor_data"
+
+    move_simple:
+      topic: "move_base_simple/goal"
+      msg: "geometry_msgs/msg/PoseStamped"
+      qos: "sensor_data"
+
+    goal_pose:
+      topic: "goal_pose"
+      msg: "geometry_msgs/msg/PoseStamped"
+      qos: "sensor_data"
+
+    footprint:
+      topic: "global_costmap/published_footprint"
+      msg: "geometry_msgs/msg/PolygonStamped"
+
+    load_map:
+      service: "load_map"
+      srv: "nav2_msgs/srv/LoadMap"
+    
+    map_odom:
+      base_frame: "map"
+      child_frame: "odom"
+
+    odom_basefootprint:
+      base_frame: "odom"
+      child_frame: "base_footprint"
+
+    odom_right_wheel:
+      base_frame: "base_link"
+      child_frame: "RightWheel_link"      
+
+    call_elevator:
+      service: "/elevator_system/call_elevator"
+      srv: "elevator_system_msgs/srv/CallElevator"
+
+    get_called_elevator:
+      service: "/elevator_system/get_called_elevator"
+      srv: "elevator_system_msgs/srv/CallElevator"
+
+    get_elevator_information:
+      service: "/elevator_system/get_elevator_information"
+      srv: "elevator_system_msgs/srv/GetElevatorInformation"
+
+    is_door_opened:
+      service: "/elevator_system/is_door_opened"
+      srv: "elevator_system_msgs/srv/RequestDoor"
+
+    request_door_open:
+      service: "/elevator_system/request_door_open"
+      srv: "elevator_system_msgs/srv/RequestDoor"
+
+    select_elevator_floor:
+      service: "/elevator_system/select_elevator_floor"
+      srv: "elevator_system_msgs/srv/SelectElevatorFloor"
+
+    bt_elev:
+      topic: "navigate_with_elevator"
+      msg: "std_msgs/msg/String"
+
+    bt_elev_feedback:
+      topic: "navigate_with_elevator/feedback"
+      msg: "std_msgs/msg/String"
+    
+    bt_elev_result:
+      topic: "navigate_with_elevator/result"
+      msg: "std_msgs/msg/String"
+
+    bt_elev_cancel:
+      topic: "navigate_with_elevator/cancel"
+      msg: "std_msgs/msg/Empty"
+    
+    nav2_status:
+      topic: "NavigateToPose/_action/status"
+      msg: "action_msgs/msg/GoalStatusArray"
+
+    color_compressed:
+      topic: "front/color/image_raw/compressed"
+      msg: "sensor_msgs/msg/CompressedImage"      
