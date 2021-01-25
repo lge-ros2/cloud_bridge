@@ -37,13 +37,15 @@ CloudBridge::CloudBridge(string nodeName, bool isBind)
     m_iManagePort = declare_parameter("manage_port", 25565);
   }
 
+  // Get Parameters for common parameters
+  std::vector<string> deault_param_list;
+  m_vectorParams = declare_parameter("param_list", deault_param_list);
+
   // Get Parameters for topic
   std::vector<string> deault_sub_list;
   std::vector<string> deault_pub_list;
-  std::vector<string> deault_param_list;
   m_vectorSubTopic = declare_parameter("sub_list", deault_sub_list);
   m_vectorPubTopic = declare_parameter("pub_list", deault_pub_list);
-  m_vectorParams = declare_parameter("param_list", deault_param_list);
   // Get Parameters for service
   std::vector<string> deault_srv_server_list;
   std::vector<string> deault_srv_client_list;
@@ -69,7 +71,6 @@ CloudBridge::~CloudBridge()
   {
     m_threadProc.join();
   }
-  zmq_msg_close(&m_pSubMsg);
 
   rcl_ret_t rc;
   rcl_init_options_t init = rcl_get_zero_initialized_init_options();
@@ -99,18 +100,6 @@ bool CloudBridge::Setup()
 
   if (zmq_msg_init(&m_pManageMsg) < 0) {
     ERROR("manage msg init failed:" << std::string(zmq_strerror(zmq_errno())));
-    return false;
-  }
-  if (zmq_msg_init(&m_pSubMsg) < 0) {
-    ERROR("sub msg init failed:" << std::string(zmq_strerror(zmq_errno())));
-    return false;
-  }
-  if (zmq_msg_init(&m_pReqMsg) < 0) {
-    ERROR("req msg init failed:" << std::string(zmq_strerror(zmq_errno())));
-    return false;
-  }
-  if (zmq_msg_init(&m_pRepMsg) < 0) {
-    ERROR("res msg init failed:" << std::string(zmq_strerror(zmq_errno())));
     return false;
   }
 
@@ -300,16 +289,19 @@ void CloudBridge::initBridgeNode() {
 }
 
 void CloudBridge::initBridgeParams() {
-  client = new BridgeClient(*bridge_node_, m_pPubSocket, m_pSubSocket);
+  client = new BridgeClient(*bridge_node_, 
+    m_pPubSocket, m_pSubSocket,
+    m_pReqSocket, m_pRepSocket);
+
   std::map<std::string, std::string> qos_map;
   for(unsigned int vi=0; vi<m_vectorParams.size(); vi++) {
     std::string source = m_vectorParams[vi];
-    LOG("CloudBridge::"<< __FUNCTION__ << ", add params for qos: " << source);
+    // LOG("CloudBridge::"<< __FUNCTION__ << ", add params for qos: " << source);
     std::string topic;
     std::string qos;
     topic = declare_parameter(source + "." + "topic", "");
     qos = declare_parameter(source + "." + "qos", "");
-    LOG("  - topic: " << topic << ", qos_string: "<< qos);
+    // LOG("  - topic: " << topic << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && qos.compare("") != 0) {
       qos_map.insert(make_pair(topic, qos));
     }
@@ -352,6 +344,36 @@ void CloudBridge::initBridgeParams() {
     undeclare_parameter(source + "." + "topic");
     undeclare_parameter(source + "." + "msg");
     undeclare_parameter(source + "." + "qos");
+  }
+
+  for(unsigned int vi=0; vi<m_vectorSrvServer.size(); vi++) {
+    std::string source = m_vectorSrvServer[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add srv server: " << source);
+    std::string service;
+    std::string srv;
+    service = declare_parameter(source + "." + "service", "");
+    srv = declare_parameter(source + "." + "srv", "");
+    LOG("  - service: " << service << ", type: " << srv);
+    if(service.compare("") != 0 && srv.compare("") != 0) {
+      bridge_node_->add_service_server(service, srv, client);
+    }
+    undeclare_parameter(source + "." + "service");
+    undeclare_parameter(source + "." + "srv");
+  }
+
+  for(unsigned int vi=0; vi<m_vectorSrvClient.size(); vi++) {
+    std::string source = m_vectorSrvClient[vi];
+    LOG("CloudBridge::"<< __FUNCTION__ << ", add srv client: " << source);
+    std::string service;
+    std::string srv;
+    service = declare_parameter(source + "." + "service", "");
+    srv = declare_parameter(source + "." + "srv", "");
+    LOG("  - service: " << service << ", type: " << srv);
+    if(service.compare("") != 0 && srv.compare("") != 0) {
+      bridge_node_->add_service_client(service, srv, client);
+    }
+    undeclare_parameter(source + "." + "service");
+    undeclare_parameter(source + "." + "srv");
   }
 
   for(unsigned int vi=0; vi<m_vectorTfLookup.size(); vi++) {

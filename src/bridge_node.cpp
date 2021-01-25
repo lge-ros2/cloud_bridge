@@ -21,8 +21,12 @@
 #include <cstring>
 #include <chrono>
 
+#include <std_msgs/msg/string.hpp>
+
+#include <example_interfaces/srv/add_two_ints.hpp>
+
 BridgeNode::BridgeNode(rcl_allocator_t *alloc, rcl_context_t *context, std::string ns)
-    : running(true), alloc(alloc), context(context), node(rcl_get_zero_initialized_node()), wait(rcl_get_zero_initialized_wait_set())
+    : running(true), alloc(alloc), context(context), node(rcl_get_zero_initialized_node()), wait_set_(rcl_get_zero_initialized_wait_set())
 {
     rcl_node_options_t opts = rcl_node_get_default_options();
     rcl_ret_t rc;
@@ -62,7 +66,7 @@ BridgeNode::~BridgeNode()
         }
     }
 
-    rc = rcl_wait_set_fini(&wait);
+    rc = rcl_wait_set_fini(&wait_set_);
     if (rc != RCL_RET_OK)
     {
         ERROR("rcl_wait_set_fini failed: " << rc);
@@ -78,12 +82,14 @@ BridgeNode::~BridgeNode()
 void BridgeNode::execute()
 {
     size_t sub_count = 0;
+    size_t service_count = 0;
     rcl_ret_t rc;
 
     const unsigned int timeout = 100; // msec
     while (running)
     {
         size_t new_sub_count;
+        size_t new_service_count;
         {
             std::lock_guard<std::mutex> lock(mutex);
             while (!actions.empty())
@@ -93,25 +99,27 @@ void BridgeNode::execute()
                 actions.pop();
             }
             new_sub_count = subscribers.size();
+            new_service_count = service_servers.size();
         }
 
-        if (new_sub_count == 0)
+        if (new_sub_count == 0 && new_service_count == 0)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
             continue;
         }
 
-        if (new_sub_count != sub_count)
+        if (new_sub_count != sub_count || new_service_count != service_count)
         {
             sub_count = new_sub_count;
+            service_count = new_service_count;
 
-            rc = rcl_wait_set_fini(&wait);
+            rc = rcl_wait_set_fini(&wait_set_);
             if (rc != RCL_RET_OK)
             {
                 ERROR("rcl_wait_set_fini failed: " << rc);
             }
 
-            rc = rcl_wait_set_init(&wait, sub_count, 0, 0, 0, 0, 0, context, *alloc);
+            rc = rcl_wait_set_init(&wait_set_, sub_count, 0, 0, 0, service_count, 0, context, *alloc);
             if (rc != RCL_RET_OK)
             {
                 ERROR("rcl_wait_set_init failed: " << rc);
@@ -119,7 +127,7 @@ void BridgeNode::execute()
         }
         else
         {
-            rc = rcl_wait_set_clear(&wait);
+            rc = rcl_wait_set_clear(&wait_set_);
             if (rc != RCL_RET_OK)
             {
                 ERROR("rcl_wait_set_clear failed: " << rc);
@@ -130,16 +138,27 @@ void BridgeNode::execute()
         for (const auto &it : subscribers)
         {
             size_t index;
-            rc = rcl_wait_set_add_subscription(&wait, &it->sub, &index);
+            rc = rcl_wait_set_add_subscription(&wait_set_, &it->sub, &index);
             if (rc != RCL_RET_OK)
             {
                 ERROR("rcl_wait_set_add_subscription failed: " << rc);
             }
         }
 
-        rc = rcl_wait(&wait, RCL_MS_TO_NS(timeout)); // 요기가 문제!
+        for (const auto &it : service_servers)
+        {
+            size_t index;
+            rc = rcl_wait_set_add_service(&wait_set_, &it->rcl_service, &index);
+            if (rc != RCL_RET_OK)
+            {
+                ERROR("rcl_wait_set_add_service failed: " << rc);
+            }
+        }
+        
+        rc = rcl_wait(&wait_set_, RCL_MS_TO_NS(timeout));
         if (rc == RCL_RET_TIMEOUT)
         {
+            // std::cout << "RCL_RET_TIMEOUT: " << sub_count << std::endl;
             continue;
         }
         if (rc != RCL_RET_OK)
@@ -148,12 +167,20 @@ void BridgeNode::execute()
         }
         for (size_t i = 0; i < sub_count; i++)
         {
-            if (wait.subscriptions[i])
+            if (wait_set_.subscriptions[i])
             {
-                Subscriber *sub = (Subscriber *)wait.subscriptions[i];
+                Subscriber *sub = (Subscriber *)wait_set_.subscriptions[i];
                 handle_message(sub);
             }
         }
+        for (size_t i = 0; i < service_count; ++i) {
+            if (wait_set_.services[i])
+            {
+                ServiceServer *ss = (ServiceServer *) wait_set_.services[i];
+                handle_service(ss);
+            }
+        }
+        // std::cout << "-----------------------------" << std::endl;
     }
 }
 
@@ -334,6 +361,115 @@ void BridgeNode::add_publisher(const std::string &topic, const std::string &type
     LOG("Publishing " << type << " on " << topic);
 }
 
+void BridgeNode::add_service_server(const std::string& topic, const std::string& type,
+    BridgeClient* client)
+{
+    const MessageType *type_req = types.get(type, "request");
+    const MessageType *type_res = types.get(type, "response");
+    const rosidl_service_type_support_t *srv_type_support = types.get_srv_type_support(type);
+    if (type_req == NULL || type_res == NULL)
+    {
+        return;
+    }
+    auto action = [=]() {
+        for (auto it = service_servers.begin(), eit = service_servers.end(); it != eit; ++it)
+        {
+            ServiceServer *service_server = it->get();
+            if (service_server->topic == topic)
+            {
+                service_server->clients.insert(client);
+                return;
+            }
+        }
+
+        std::unique_ptr<ServiceServer> new_service_server(new ServiceServer);
+        new_service_server->rcl_service = rcl_get_zero_initialized_service();
+        new_service_server->type_req = type_req;
+        new_service_server->type_res = type_res;
+        new_service_server->topic = topic;
+        new_service_server->clients.insert(client);
+
+        rcl_service_options_t service_options = rcl_service_get_default_options();
+
+        rcl_ret_t rc = rcl_service_init(&new_service_server->rcl_service, &node, 
+            srv_type_support, topic.c_str(), &service_options);
+        if (rc != RCL_RET_OK)
+        {
+            ERROR("rcl_service_init failed: " << rc);
+            return;
+        }
+
+        auto it = service_servers.insert(service_servers.end(), std::move(new_service_server));
+        assert((void *)it->get() == (void *)&it->get()->rcl_service);
+
+        LOG("Service Served " << type << " on " << topic);
+    };
+
+    std::lock_guard<std::mutex> lock(mutex);
+    actions.push(action);
+}
+
+void BridgeNode::add_service_client(const std::string& topic, const std::string& type,
+    BridgeClient* client)
+{
+    auto it = service_clients.find(topic);
+    if (it != service_clients.end())
+    {
+        it->second.clients.insert(client);
+        return;
+    }
+
+    const MessageType *type_req = types.get(type, "request");
+    const MessageType *type_res = types.get(type, "response");
+    const rosidl_service_type_support_t *srv_type_support = types.get_srv_type_support(type);
+    if (type_req == NULL || type_res == NULL)
+    {
+        return;
+    }
+    rcl_client_t rcl_client = rcl_get_zero_initialized_client();
+    rcl_client_options_t client_options = rcl_client_get_default_options();
+    rcl_ret_t rc = rcl_client_init(&rcl_client, &node, 
+        srv_type_support, topic.c_str(), &client_options);
+    if (rc != RCL_RET_OK)
+    {
+        ERROR("rcl_client_init failed: " << rc);
+        return;
+    }
+    // wait_for_server_to_be_available(&node, &rcl_client, 10, 1000);
+
+    ServiceClient service_client;
+    service_client.rcl_client = rcl_client;
+    service_client.type_req = type_req;
+    service_client.type_res = type_res;
+    service_client.topic = topic;
+    service_client.clients.insert(client);
+    service_clients.insert(std::make_pair(topic, service_client));
+
+    LOG("Service Client " << type << " on " << topic);
+}
+
+bool BridgeNode::wait_for_server_to_be_available(
+  rcl_node_t * node, rcl_client_t * client,
+  size_t max_tries, int64_t period_ms)
+{
+    LOG("wait_for_server_to_be_available");
+    size_t iteration = 0;
+    while (iteration < max_tries) {
+        ++iteration;
+        bool is_ready;
+        rcl_ret_t ret = rcl_service_server_is_available(node, client, &is_ready);
+        if (ret != RCL_RET_OK) {
+        ERROR( "Error in rcl_service_server_is_available: %s" << rcl_get_error_string().str);
+        return false;
+        }
+        if (is_ready) {
+        return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(period_ms));
+    }
+    return false;
+}
+
 void BridgeNode::publish(const std::string &topic, const std::vector<uint8_t> &data)
 {
     if (topic == "tf")
@@ -375,7 +511,7 @@ void BridgeNode::publish(const std::string &topic, const std::vector<uint8_t> &d
                 DEBUG("Unserializing message for " << topic << " topic");
                 if (Unserialize(msg, type->introspection, data))
                 {
-                    DEBUG("BridgeNode::publish rcl_publish topic "<< topic);
+                    DEBUG("BridgeNode rcl_publish topic "<< topic);
                     rcl_ret_t rc = rcl_publish(pub, msg, NULL);
                     if (rc != RCL_RET_OK)
                     {
@@ -448,22 +584,23 @@ void BridgeNode::handle_message(Subscriber *sub)
     {
         if (sub->type->init(msg))
         {
+            LOG("msg address 111  " << msg );
             rmw_message_info_t info;
             rc = rcl_take(&sub->sub, msg, &info, NULL);
+            LOG("msg address 222  " << msg );
             if (rc == RCL_RET_OK)
             {
                 // LOG("New message received " << sub->topic << " topic");
-
                 std::vector<uint8_t> data;
                 // data.reserve(4096);
 
                 DEBUG("Serializing message for " << sub->topic << " topic");
                 Serialize(msg, sub->type->introspection, data);
-
+            
                 std::string target_topic = sub->topic;
                 for (auto client : sub->clients)
                 {
-                    LOG("BridgeNode::handle_message client->publish topic: " << sub->topic);
+                    DEBUG("BridgeNode client->publish topic: " << target_topic);
                     client->publish(target_topic, sub->type->type_string, data);
                 }
             }
@@ -488,5 +625,131 @@ void BridgeNode::handle_message(Subscriber *sub)
     else
     {
         ERROR("Out of memory when receiving message " << sub->topic << " topic");
+    }
+}
+
+void BridgeNode::service(const std::string& topic, 
+    const std::vector<uint8_t>& req_data, std::vector<uint8_t>& res_data)
+{
+    auto it = service_clients.find(topic);
+    if (it == service_clients.end())
+    {
+        ERROR("No service client registered on topic " << topic << ", ignorning message");
+        return;
+    }
+    
+    const MessageType *type_req = it->second.type_req;
+    const MessageType *type_res = it->second.type_res;
+    rcl_client_t *rcl_client = &it->second.rcl_client;
+
+    void *req_msg = malloc(type_req->size);
+    void *res_msg = malloc(type_res->size);
+    if (req_msg)
+    {
+        if (type_req->init(req_msg))
+        {
+            LOG("Unserializing req_msg for " << topic << " topic");
+            if (Unserialize(req_msg, type_req->introspection, req_data))
+            {
+                LOG("BridgeNode rcl_send_request topic: "<< topic);
+                int64_t sequence_number = 0;
+                rcl_ret_t rc = rcl_send_request(rcl_client, req_msg, &sequence_number);
+                LOG("BridgeNode rcl_send_request sequence_number: "<< sequence_number);
+                if (rc != RCL_RET_OK)
+                {
+                    ERROR("rcl_send_request failed: " << rc);
+                }
+
+                LOG("BridgeNode wait for rcl_take_response topic "<< topic);
+                rmw_request_id_t request_id;
+                rc = rcl_take_response(rcl_client, &request_id, res_msg);
+                if (rc != RCL_RET_OK)
+                {
+                    ERROR("rcl_take_response failed: " << rc );
+                }
+                LOG("BridgeNode rcl_take_response sequence_number: "<< request_id.sequence_number);
+                LOG("Serialize response msg topic "<< topic);
+                Serialize(res_msg, type_res->introspection, res_data);
+            }
+
+            type_req->fini(req_msg);
+            type_res->fini(res_msg);
+        }
+        else
+        {
+            ERROR("Message init failed for " << topic << " topic");
+        }
+
+        free(req_msg);
+        free(res_msg);
+    }
+    else
+    {
+        ERROR("Out of memory when unserializing message on " << topic << " topic");
+    }
+}
+
+void BridgeNode::handle_service(ServiceServer* service_server)
+{
+    LOG("handle_service " << service_server->topic << " service");
+    rcl_ret_t rc;
+
+    void *req_msg = malloc(service_server->type_req->size);
+    void *res_msg = malloc(service_server->type_res->size);
+    if (req_msg)
+    {
+        if (service_server->type_req->init(req_msg))
+        {
+            LOG("rcl_take_request " << service_server->topic << " service");
+            rmw_request_id_t request_id; 
+            rc = rcl_take_request(&service_server->rcl_service, &request_id, req_msg);
+            if (rc == RCL_RET_OK)
+            {
+
+                std::vector<uint8_t> req_data;
+                // req_data.reserve(4096);
+
+                LOG("Serializing req_msg for " << service_server->topic << " service");
+                Serialize(req_msg, service_server->type_req->introspection, req_data);
+
+                std::string target_topic = service_server->topic;
+                for (auto client : service_server->clients)
+                {
+                    LOG("BridgeNode client->send_request topic: " << service_server->topic);
+                    std::vector<uint8_t> res_data;
+                    client->send_request(target_topic, req_data, res_data);
+
+                    LOG("Unserializing res_msg for " << service_server->topic << " topic, res_size: " << res_data.size());
+                    LOG("service_server->type_res->size: " <<  service_server->type_res->size);
+                    if (Unserialize(res_msg, service_server->type_res->introspection, res_data))
+                    {
+                        LOG("BridgeNode rcl_send_response topic "<< service_server->topic);
+                        rc = rcl_send_response(&service_server->rcl_service, &request_id, res_msg);
+                        if (rc != RCL_RET_OK)
+                        {
+                            ERROR("rcl_publish failed: " << rc);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ERROR("rcl_take_request failed: " << rc);
+            }
+
+            service_server->type_req->fini(req_msg);
+            service_server->type_res->fini(res_msg);
+        }
+        else
+        {
+            ERROR("Message init failed on " << service_server->topic << " topic");
+        }
+
+        free(req_msg);
+        free(res_msg);
+    }
+    else
+    {
+        ERROR("Out of memory when receiving message " << service_server->topic << " topic");
     }
 }

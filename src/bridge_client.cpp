@@ -29,16 +29,22 @@ enum
   OP_PUBLISH = 3,
 };
 
-BridgeClient::BridgeClient(BridgeNode &node, void *pubSocket, void *subSocket)
+BridgeClient::BridgeClient(BridgeNode &node, 
+  void *pubSocket, void *subSocket,
+  void *reqSocket, void *repSocket)
     : node(node),
       m_pPubSocket(pubSocket),
-      m_pSubSocket(subSocket)
+      m_pSubSocket(subSocket),
+      m_pReqSocket(reqSocket),
+      m_pRepSocket(repSocket)
 {
 }
 
 BridgeClient::~BridgeClient()
 {
   zmq_msg_close(&m_pMsgSub);
+  zmq_msg_close(&m_pMsgReq);
+  zmq_msg_close(&m_pMsgRep);
 }
 
 void BridgeClient::start()
@@ -47,14 +53,23 @@ void BridgeClient::start()
   {
     return;
   }
-  m_threadProc = std::thread([=]() { handle_read(); });
+  if (zmq_msg_init(&m_pMsgReq) < 0)
+  {
+    return;
+  }
+  if (zmq_msg_init(&m_pMsgRep) < 0)
+  {
+    return;
+  }
+  m_threadProc = std::thread([=]() { read_zmq_sub(); });
+  m_threadServiceProc = std::thread([=]() { read_zmq_service(); });
 }
 
 void BridgeClient::stop()
 {
 }
 
-void BridgeClient::handle_read()
+void BridgeClient::read_zmq_sub()
 {
   bool m_bRun = true;
   void *pBuffer = nullptr;
@@ -74,6 +89,25 @@ void BridgeClient::handle_read()
   }
 }
 
+void BridgeClient::read_zmq_service()
+{
+  bool m_bRun = true;
+  void *pBuffer = nullptr;
+  int bufferLength = 0;
+  while (m_bRun)
+  {
+    const bool succeeded = receive_zmq_service(&pBuffer, bufferLength);
+    if (!succeeded || bufferLength < 0)
+    {
+      ERROR("zmq receive error return size(" << bufferLength << "): " << zmq_strerror(zmq_errno()));
+      continue;
+    }
+    auto ptr = static_cast<uint8_t *>(pBuffer);
+    rep_buffer.insert(rep_buffer.end(), ptr, ptr + bufferLength);
+    handle_service();
+  }
+}
+
 void BridgeClient::handle_add_subscriber()
 {
   if (sizeof(uint8_t) + 2 * sizeof(uint32_t) > buffer.size())
@@ -88,7 +122,7 @@ void BridgeClient::handle_add_subscriber()
   offset += sizeof(uint32_t);
   if (offset + topic_length > buffer.size())
   {
-    DEBUG("handle_add_subscriber short1 " << (offset + topic_length) << " " << buffer.size());
+    DEBUG("handle_add_subscriber short topic " << (offset + topic_length) << " " << buffer.size());
     return;
   }
 
@@ -99,7 +133,7 @@ void BridgeClient::handle_add_subscriber()
   offset += sizeof(uint32_t);
   if (offset + type_length > buffer.size())
   {
-    DEBUG("handle_add_subscriber short2 " << (offset + type_length) << " " << buffer.size());
+    DEBUG("handle_add_subscriber short type " << (offset + type_length) << " " << buffer.size());
     return;
   }
 
@@ -261,6 +295,11 @@ uint32_t BridgeClient::get32le(size_t offset) const
   return buffer[offset + 0] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16) | (buffer[offset + 3] << 24);
 }
 
+uint32_t BridgeClient::get32le_rep(size_t offset) const
+{
+  return rep_buffer[offset + 0] | (rep_buffer[offset + 1] << 8) | (rep_buffer[offset + 2] << 16) | (rep_buffer[offset + 3] << 24);
+}
+
 bool BridgeClient::receive_zmq(void **zmq_buffer, int &bufferLength)
 {
   if (&m_pMsgSub == nullptr) {
@@ -294,5 +333,125 @@ bool BridgeClient::send_zmq(const void *buffer, const int bufferLength)
     return false;
   }
   zmq_msg_close(&msg);
+  return true;
+}
+
+void BridgeClient::send_request(const std::string &topic,
+  const std::vector<uint8_t> &req_msg, std::vector<uint8_t> &res_msg)
+{
+  DEBUG("SEND_REQUEST, topic = " << topic);
+  std::vector<uint8_t> data;
+  data.reserve(sizeof(uint32_t) + topic.size() + sizeof(uint32_t) + req_msg.size());
+
+  data.push_back(uint8_t(topic.size() >> 0));
+  data.push_back(uint8_t(topic.size() >> 8));
+  data.push_back(uint8_t(topic.size() >> 16));
+  data.push_back(uint8_t(topic.size() >> 24));
+  data.insert(data.end(), (uint8_t *)topic.data(), (uint8_t *)topic.data() + topic.size());
+
+  data.push_back(uint8_t(req_msg.size() >> 0));
+  data.push_back(uint8_t(req_msg.size() >> 8));
+  data.push_back(uint8_t(req_msg.size() >> 16));
+  data.push_back(uint8_t(req_msg.size() >> 24));
+  data.insert(data.end(), req_msg.data(), req_msg.data() + req_msg.size());
+
+  LOG("BridgeClient::send_request data size : " << data.size());
+  void* recvBuffer = nullptr;
+  int recvBufferLength = 0;
+  send_zmq_request(data.data(), data.size(), &recvBuffer, recvBufferLength);
+  auto ptr = static_cast<uint8_t *>(recvBuffer);
+
+  LOG("BridgeClient::send_request receive size : " << recvBufferLength);
+  res_msg.insert(res_msg.end(), ptr, ptr + recvBufferLength);
+}
+
+bool BridgeClient::receive_zmq_service(void **zmq_buffer, int &bufferLength)
+{
+  std::unique_lock<std::mutex> lock(m_mutexRep);
+  if (&m_pMsgRep == nullptr) {
+    return false;
+  }
+
+  bufferLength = zmq_msg_recv(&m_pMsgRep, m_pRepSocket, 0);
+
+  if (bufferLength == 0) {
+    return false;
+  }
+  *zmq_buffer = zmq_msg_data(&m_pMsgRep);
+
+  if (*zmq_buffer == nullptr) {
+    return false;
+  }
+  return true;
+}
+
+bool BridgeClient::send_zmq_request(const void* buffer, const int bufferLength, 
+  void** recvBuffer, int& recvBufferLength)
+{
+  std::unique_lock<std::mutex> lock(m_mutexReq);
+  zmq_msg_t msg;
+  if (zmq_msg_init_size(&msg, bufferLength) < 0)
+    return false;
+  memcpy(zmq_msg_data(&msg), buffer, bufferLength);
+  // /* Send the message to the socket */
+  if (zmq_msg_send(&msg, m_pReqSocket, 0) < 0)
+    return false;
+	zmq_msg_close(&msg);
+  recvBufferLength = zmq_msg_recv(&m_pMsgReq, m_pReqSocket, 0);
+
+  if (recvBufferLength == 0)
+    return false;
+
+  *recvBuffer = zmq_msg_data(&m_pMsgReq);
+  if (*recvBuffer == nullptr)
+    return false;
+
+  return true;
+}
+
+void BridgeClient::handle_service()
+{
+  if (sizeof(uint8_t) + 2 > rep_buffer.size())
+  {
+    return;
+  }
+
+  size_t offset = 0;
+  uint32_t topic_length = get32le_rep(offset);
+  offset += sizeof(uint32_t);
+  if (offset + topic_length > rep_buffer.size())
+  {
+    return;
+  }
+  std::string topic((char *)&rep_buffer[offset], topic_length);
+  offset += topic_length;
+  uint32_t message_length = get32le_rep(offset);
+  offset += sizeof(uint32_t);
+  if (offset + message_length > rep_buffer.size())
+  {
+    return;
+  }
+  std::vector<uint8_t> req_data(&rep_buffer[offset], &rep_buffer[offset] + message_length);
+  offset += message_length;
+
+  DEBUG("OP_SERVICE, topic = " << topic);
+  std::vector<uint8_t> res_data;
+  node.service(topic, req_data, res_data);
+  send_zmq_reply(res_data.data(), res_data.size());
+  rep_buffer.erase(rep_buffer.begin(), rep_buffer.begin() + offset);
+}
+
+bool BridgeClient::send_zmq_reply(const void* buffer, const int bufferLength)
+{
+  std::unique_lock<std::mutex> lock(m_mutexRep);
+  zmq_msg_t msg;
+  if (zmq_msg_init_size(&msg, bufferLength) < 0)
+    return false;
+  memcpy(zmq_msg_data(&msg), buffer, bufferLength);    
+  // /* Send the message to the socket */
+  if (zmq_msg_send(&msg, m_pRepSocket, 0) < 0)
+    return false;
+	zmq_msg_close(&msg);
+
   return true;
 }
