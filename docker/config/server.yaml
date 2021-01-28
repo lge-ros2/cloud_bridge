@@ -1,0 +1,26 @@
+/**:
+  ros__parameters:
+    manage_port: 25565
+    sub_port: 25567
+    pub_port: 25568
+    req_port: 25569
+    rep_port: 25570
+    sub_list:
+    - cmd_vel
+    - plan
+    - footprint
+    - map
+    - bt_elev_feedback
+    - bt_elev_result
+    - nav2_status
+    tf_list:
+    - map_odom
+    srv_server_list:
+    - call_elevator
+    - get_called_elevator
+    - get_elevator_information
+    - is_door_opened
+    - request_door_open
+    - select_elevator_floor
+    srv_client_list:
+    - load_map
