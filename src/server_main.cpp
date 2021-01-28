@@ -13,14 +13,14 @@
  *         SPDX-License-Identifier: MIT
  */
 
-#include "cloud_bridge/cloud_bridge.hpp"
+#include "cloud_bridge/cloud_bridge_server.hpp"
 
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     rclcpp::sleep_for(3000ms);
 
-    auto bridge = std::make_shared<CloudBridge>("cloud_bridge_server", true);
+    auto bridge = std::make_shared<CloudBridgeServer>("cloud_bridge_server");
 
     rclcpp::spin(bridge);
     rclcpp::shutdown();

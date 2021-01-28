@@ -22,5 +22,6 @@
     - is_door_opened
     - request_door_open
     - select_elevator_floor
+    - add_two_ints
     srv_client_list:
     - load_map
