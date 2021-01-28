@@ -3,27 +3,27 @@
     cloud_ip: "127.0.0.1"
     manage_port: 25565
     sub_list:
-    # - scan
-    # - tf_static
-    # - odom
-    # - imu
-    # - initialpose
-    # - move_simple
-    # - clock
-    # - bt_elev
-    # - bt_elev_cancel
-    # - front_color_compressed
-    # - goal_pose
+    - scan
+    - tf_static
+    - odom
+    - imu
+    - initialpose
+    - move_simple
+    - clock
+    - bt_elev
+    - bt_elev_cancel
+    - front_color_compressed
+    - goal_pose
     - demo_node_talker
-    # tf_list:
-    # - odom_basefootprint
+    tf_list:
+    - odom_basefootprint
     srv_server_list:
-    # - load_map
+    - load_map
+    srv_client_list:
     - add_two_ints
-    # srv_client_list:
-    # - call_elevator
-    # - get_called_elevator
-    # - get_elevator_information
-    # - is_door_opened
-    # - request_door_open
-    # - select_elevator_floor
+    - call_elevator
+    - get_called_elevator
+    - get_elevator_information
+    - is_door_opened
+    - request_door_open
+    - select_elevator_floor

@@ -28,7 +28,6 @@ struct MessageType
 {
     const rosidl_message_type_support_t* type_support;
     const rosidl_message_type_support_t* introspection;
-    const rosidl_service_type_support_t* srv_type_support;
 
     std::string type_string;
     size_t size;

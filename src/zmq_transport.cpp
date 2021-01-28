@@ -1,5 +1,5 @@
 /**
- *  @file   bridge_client.cpp
+ *  @file   zmq_transport.cpp
  *  @date   2020-09-21
  *  @author Sungkyu Kang
  *  @brief
@@ -13,8 +13,8 @@
  *         SPDX-License-Identifier: MIT
  */
 
-#include "cloud_bridge/bridge_client.hpp"
-#include "cloud_bridge/bridge_node.hpp"
+#include "cloud_bridge/zmq_transport.hpp"
+#include "cloud_bridge/bridge_rcl_node.hpp"
 #include "cloud_bridge/logging.hpp"
 
 #include <memory>
@@ -29,36 +29,47 @@ enum
   OP_PUBLISH = 3,
 };
 
-BridgeClient::BridgeClient(BridgeNode &node, 
+ZmqTransport::ZmqTransport(BridgeRclNode &rcl_node, 
   void *pubSocket, void *subSocket,
   void *reqSocket, void *repSocket)
-    : node(node),
+    : rcl_node_(rcl_node),
       m_pPubSocket(pubSocket),
       m_pSubSocket(subSocket),
-      m_pReqSocket(subSocket),
-      m_pRepSocket(subSocket)
+      m_pReqSocket(reqSocket),
+      m_pRepSocket(repSocket)
 {
 }
 
-BridgeClient::~BridgeClient()
+ZmqTransport::~ZmqTransport()
 {
   zmq_msg_close(&m_pMsgSub);
+  zmq_msg_close(&m_pMsgReq);
+  zmq_msg_close(&m_pMsgRep);
 }
 
-void BridgeClient::start()
+void ZmqTransport::start()
 {
   if (zmq_msg_init(&m_pMsgSub) < 0)
   {
     return;
   }
-  m_threadProc = std::thread([=]() { handle_read(); });
+  if (zmq_msg_init(&m_pMsgReq) < 0)
+  {
+    return;
+  }
+  if (zmq_msg_init(&m_pMsgRep) < 0)
+  {
+    return;
+  }
+  m_threadProc = std::thread([=]() { read_zmq_sub(); });
+  m_threadServiceProc = std::thread([=]() { read_zmq_service(); });
 }
 
-void BridgeClient::stop()
+void ZmqTransport::stop()
 {
 }
 
-void BridgeClient::handle_read()
+void ZmqTransport::read_zmq_sub()
 {
   bool m_bRun = true;
   void *pBuffer = nullptr;
@@ -78,7 +89,26 @@ void BridgeClient::handle_read()
   }
 }
 
-void BridgeClient::handle_add_subscriber()
+void ZmqTransport::read_zmq_service()
+{
+  bool m_bRun = true;
+  void *pBuffer = nullptr;
+  int bufferLength = 0;
+  while (m_bRun)
+  {
+    const bool succeeded = receive_zmq_service(&pBuffer, bufferLength);
+    if (!succeeded || bufferLength < 0)
+    {
+      ERROR("zmq receive error return size(" << bufferLength << "): " << zmq_strerror(zmq_errno()));
+      continue;
+    }
+    auto ptr = static_cast<uint8_t *>(pBuffer);
+    rep_buffer.insert(rep_buffer.end(), ptr, ptr + bufferLength);
+    handle_service();
+  }
+}
+
+void ZmqTransport::handle_add_subscriber()
 {
   if (sizeof(uint8_t) + 2 * sizeof(uint32_t) > buffer.size())
   {
@@ -92,7 +122,7 @@ void BridgeClient::handle_add_subscriber()
   offset += sizeof(uint32_t);
   if (offset + topic_length > buffer.size())
   {
-    DEBUG("handle_add_subscriber short1 " << (offset + topic_length) << " " << buffer.size());
+    DEBUG("handle_add_subscriber short topic " << (offset + topic_length) << " " << buffer.size());
     return;
   }
 
@@ -103,7 +133,7 @@ void BridgeClient::handle_add_subscriber()
   offset += sizeof(uint32_t);
   if (offset + type_length > buffer.size())
   {
-    DEBUG("handle_add_subscriber short2 " << (offset + type_length) << " " << buffer.size());
+    DEBUG("handle_add_subscriber short type " << (offset + type_length) << " " << buffer.size());
     return;
   }
 
@@ -112,12 +142,12 @@ void BridgeClient::handle_add_subscriber()
 
   DEBUG("OP_ADD_SUBSCRIBER, topic = " << topic << ", type = " << type);
 
-  // node.add_subscriber(topic, type, this);
+  // rcl_node_.add_subscriber(topic, type, this);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
 
-void BridgeClient::handle_add_publisher()
+void ZmqTransport::handle_add_publisher()
 {
   if (sizeof(uint8_t) + 2 * sizeof(uint32_t) > buffer.size())
   {
@@ -151,12 +181,12 @@ void BridgeClient::handle_add_publisher()
 
   DEBUG("OP_ADD_PUBLISHER, topic = " << topic << ", type = " << type);
 
-  // node.add_publisher(topic, type, this);
+  // rcl_node_.add_publisher(topic, type, this);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
 
-void BridgeClient::handle_publish()
+void ZmqTransport::handle_publish()
 {
   if (sizeof(uint8_t) + 2 * sizeof(uint32_t) > buffer.size())
   {
@@ -195,12 +225,12 @@ void BridgeClient::handle_publish()
   DEBUG("OP_PUBLISH, topic = " << topic);
 
   check_topic_data(topic, type);
-  node.publish(topic, message);
+  rcl_node_.publish(topic, message);
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
 
-void BridgeClient::check_topic_data(std::string topic, std::string type)
+void ZmqTransport::check_topic_data(std::string topic, std::string type)
 {
   if(topic == "tf") {
     type = "tf2_msgs/msg/TFMessage";
@@ -225,15 +255,15 @@ void BridgeClient::check_topic_data(std::string topic, std::string type)
   //   }
   // }
   LOG("add_publisher topic: " << topic << ", type: " << type << ", qos_string: "<< qos);
-  node.add_publisher(topic, type, this, qos);
+  rcl_node_.add_publisher(topic, type, this, qos);
 }
 
-void BridgeClient::set_qos_map(std::map<std::string, std::string> map)
+void ZmqTransport::set_qos_map(std::map<std::string, std::string> map)
 {
   this->qos_map = map;
 }
 
-void BridgeClient::publish(const std::string &topic, const std::string &type, const std::vector<uint8_t> &msg)
+void ZmqTransport::send_publish(const std::string &topic, const std::string &type, const std::vector<uint8_t> &msg)
 {
   DEBUG("PUBLISH, topic = " << topic);
   std::vector<uint8_t> data;
@@ -260,12 +290,17 @@ void BridgeClient::publish(const std::string &topic, const std::string &type, co
   send_zmq(data.data(), data.size());
 }
 
-uint32_t BridgeClient::get32le(size_t offset) const
+uint32_t ZmqTransport::get32le(size_t offset) const
 {
   return buffer[offset + 0] | (buffer[offset + 1] << 8) | (buffer[offset + 2] << 16) | (buffer[offset + 3] << 24);
 }
 
-bool BridgeClient::receive_zmq(void **zmq_buffer, int &bufferLength)
+uint32_t ZmqTransport::get32le_rep(size_t offset) const
+{
+  return rep_buffer[offset + 0] | (rep_buffer[offset + 1] << 8) | (rep_buffer[offset + 2] << 16) | (rep_buffer[offset + 3] << 24);
+}
+
+bool ZmqTransport::receive_zmq(void **zmq_buffer, int &bufferLength)
 {
   if (&m_pMsgSub == nullptr) {
     return false;
@@ -284,7 +319,7 @@ bool BridgeClient::receive_zmq(void **zmq_buffer, int &bufferLength)
   return true;
 }
 
-bool BridgeClient::send_zmq(const void *buffer, const int bufferLength)
+bool ZmqTransport::send_zmq(const void *buffer, const int bufferLength)
 {
   std::unique_lock<std::mutex> lock(m_mutexSend);
   zmq_msg_t msg;
@@ -301,12 +336,12 @@ bool BridgeClient::send_zmq(const void *buffer, const int bufferLength)
   return true;
 }
 
-void BridgeClient::send_request(const std::string &topic, const std::string &type, 
-  const std::vector<uint8_t> &req_msg,const std::vector<uint8_t> &res_msg)
+void ZmqTransport::send_request_and_get_response(const std::string &topic,
+  const std::vector<uint8_t> &req_msg, std::vector<uint8_t> &res_msg)
 {
   DEBUG("SEND_REQUEST, topic = " << topic);
   std::vector<uint8_t> data;
-  data.reserve(sizeof(uint32_t) + topic.size() + sizeof(uint32_t) + type.size() +sizeof(uint32_t) + req_msg.size());
+  data.reserve(sizeof(uint32_t) + topic.size() + sizeof(uint32_t) + req_msg.size());
 
   data.push_back(uint8_t(topic.size() >> 0));
   data.push_back(uint8_t(topic.size() >> 8));
@@ -320,5 +355,101 @@ void BridgeClient::send_request(const std::string &topic, const std::string &typ
   data.push_back(uint8_t(req_msg.size() >> 24));
   data.insert(data.end(), req_msg.data(), req_msg.data() + req_msg.size());
 
-  // send_zmq(data.data(), data.size());
+  void* recvBuffer = nullptr;
+  int recvBufferLength = 0;
+  send_zmq_request(data.data(), data.size(), &recvBuffer, recvBufferLength);
+  auto ptr = static_cast<uint8_t *>(recvBuffer);
+
+  res_msg.insert(res_msg.end(), ptr, ptr + recvBufferLength);
+}
+
+bool ZmqTransport::receive_zmq_service(void **zmq_buffer, int &bufferLength)
+{
+  std::unique_lock<std::mutex> lock(m_mutexRep);
+  if (&m_pMsgRep == nullptr) {
+    return false;
+  }
+
+  bufferLength = zmq_msg_recv(&m_pMsgRep, m_pRepSocket, 0);
+
+  if (bufferLength == 0) {
+    return false;
+  }
+  *zmq_buffer = zmq_msg_data(&m_pMsgRep);
+
+  if (*zmq_buffer == nullptr) {
+    return false;
+  }
+  return true;
+}
+
+bool ZmqTransport::send_zmq_request(const void* buffer, const int bufferLength, 
+  void** recvBuffer, int& recvBufferLength)
+{
+  std::unique_lock<std::mutex> lock(m_mutexReq);
+  zmq_msg_t msg;
+  if (zmq_msg_init_size(&msg, bufferLength) < 0)
+    return false;
+  memcpy(zmq_msg_data(&msg), buffer, bufferLength);
+  // /* Send the message to the socket */
+  if (zmq_msg_send(&msg, m_pReqSocket, 0) < 0)
+    return false;
+	zmq_msg_close(&msg);
+  recvBufferLength = zmq_msg_recv(&m_pMsgReq, m_pReqSocket, 0);
+
+  if (recvBufferLength == 0)
+    return false;
+
+  *recvBuffer = zmq_msg_data(&m_pMsgReq);
+  if (*recvBuffer == nullptr)
+    return false;
+
+  return true;
+}
+
+void ZmqTransport::handle_service()
+{
+  if (sizeof(uint8_t) + 2 > rep_buffer.size())
+  {
+    return;
+  }
+
+  size_t offset = 0;
+  uint32_t topic_length = get32le_rep(offset);
+  offset += sizeof(uint32_t);
+  if (offset + topic_length > rep_buffer.size())
+  {
+    return;
+  }
+  std::string topic((char *)&rep_buffer[offset], topic_length);
+  offset += topic_length;
+  uint32_t message_length = get32le_rep(offset);
+  offset += sizeof(uint32_t);
+  if (offset + message_length > rep_buffer.size())
+  {
+    return;
+  }
+  std::vector<uint8_t> req_data(&rep_buffer[offset], &rep_buffer[offset] + message_length);
+  offset += message_length;
+
+  DEBUG("OP_SERVICE, topic = " << topic);
+  std::vector<uint8_t> res_data;
+  rcl_node_.service(topic, req_data, res_data);
+  send_zmq_reply(res_data.data(), res_data.size());
+  rep_buffer.erase(rep_buffer.begin(), rep_buffer.begin() + offset);
+}
+
+bool ZmqTransport::send_zmq_reply(const void* buffer, const int bufferLength)
+{
+  std::unique_lock<std::mutex> lock(m_mutexRep);
+  zmq_msg_t msg;
+  if (zmq_msg_init_size(&msg, bufferLength) < 0)
+    return false;
+  memcpy(zmq_msg_data(&msg), buffer, bufferLength);    
+  // /* Send the message to the socket */
+  if (zmq_msg_send(&msg, m_pRepSocket, 0) < 0)
+    return false;
+	zmq_msg_close(&msg);
+
+  return true;
 }
