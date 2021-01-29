@@ -1,5 +1,5 @@
 /**
- *  @file   bridge_client.hpp
+ *  @file   zmq_transport.hpp
  *  @date   2020-09-21
  *  @author Sungkyu Kang
  *  @brief
@@ -12,8 +12,8 @@
  *
  *         SPDX-License-Identifier: MIT
  */
-#ifndef _CLOUD_BRIDGE_CLIENT_H_
-#define _CLOUD_BRIDGE_CLIENT_H_
+#ifndef _CLOUD_BRIDGE_ZMQ_TRANSPORT_H_
+#define _CLOUD_BRIDGE_ZMQ_TRANSPORT_H_
 
 #include <map>
 #include <cstdint>
@@ -24,21 +24,22 @@
 #include <thread>
 #include <unordered_set>
 
-class BridgeNode;
+class BridgeRclNode;
 
-class BridgeClient
+class ZmqTransport
 {
 public:
-    BridgeClient(BridgeNode& node, 
+    ZmqTransport(BridgeRclNode& node, 
         void* m_pPubSocket, void* m_pSubSocket,
         void* m_pReqSocket, void* m_pRepSocket);
-    ~BridgeClient();
+    ~ZmqTransport();
 
     void start();
     void stop();
 
-    void publish(const std::string& topic, const std::string &type, const std::vector<uint8_t>& msg);
-    void send_request(const std::string& topic,
+    void send_publish(const std::string& topic, const std::string &type, 
+        const std::vector<uint8_t>& msg);
+    void send_request_and_get_response(const std::string& topic,
         const std::vector<uint8_t>& req_msg, std::vector<uint8_t>& res_msg);
     void set_qos_map(std::map<std::string, std::string> map);
 
@@ -50,7 +51,7 @@ private:
     };
     std::unordered_set<TopicData*> topicDatas;
 
-    BridgeNode& node;
+    BridgeRclNode& rcl_node_;
     void* m_pPubSocket;
     void* m_pSubSocket;
     void* m_pReqSocket;
@@ -92,4 +93,4 @@ private:
     uint32_t get32le_rep(size_t offset) const;
 };
 
-#endif // _CLOUD_BRIDGE_CLIENT_H_
+#endif // _CLOUD_BRIDGE_ZMQ_TRANSPORT_H_

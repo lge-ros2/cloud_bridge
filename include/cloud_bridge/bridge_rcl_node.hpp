@@ -13,8 +13,8 @@
  *         SPDX-License-Identifier: MIT
  */
 
-#ifndef _CLOUD_BRIDGE_NODE_H_
-#define _CLOUD_BRIDGE_NODE_H_
+#ifndef _CLOUD_BRIDGE_RCL_NODE_H_
+#define _CLOUD_BRIDGE_RCL_NODE_H_
 
 #include "cloud_bridge/message_types.hpp"
 
@@ -26,59 +26,56 @@
 #include <queue>
 #include <functional>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <rcl/rcl.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 
-class BridgeClient;
+class ZmqTransport;
 
-class BridgeNode
+class BridgeRclNode
 {
 public:
-    BridgeNode(rcl_allocator_t* alloc, rcl_context_t* context, std::string ns);
-    ~BridgeNode();
-
-    void remove(BridgeClient* client);
+    BridgeRclNode(rcl_allocator_t* alloc, rcl_context_t* context, std::string ns);
+    ~BridgeRclNode();
 
     void add_subscriber(const std::string& topic, const std::string& type,
-        BridgeClient* client, std::string& qos);
+        ZmqTransport* zmq_transport, std::string& qos);
     void add_publisher(const std::string& topic, const std::string& type,
-        BridgeClient* client, std::string& qos);
+        ZmqTransport* zmq_transport, std::string& qos);
+    void publish(const std::string& topic, const std::vector<uint8_t>& data);
 
     void add_service_server(const std::string& service, const std::string& type,
-        BridgeClient* client);
+        ZmqTransport* zmq_transport);
     void add_service_client(const std::string& service, const std::string& type,
-        BridgeClient* client);
-    bool wait_for_server_to_be_available(rcl_node_t * node, rcl_client_t * client, 
-        size_t max_tries, int64_t period_ms);
-
-    void add_tf_listener(const std::string& topic, BridgeClient* client);
-
-    void publish(const std::string& topic, const std::vector<uint8_t>& data);
-    void handle_tf(geometry_msgs::msg::TransformStamped& transform, BridgeClient* client);
+        ZmqTransport* zmq_transport);
     void service(const std::string& topic, 
         const std::vector<uint8_t>& req_data, std::vector<uint8_t>& res_data);
 
-    rmw_qos_profile_t parseQosString(std::string qos_string);
+    void add_tf_listener(const std::string& topic, ZmqTransport* zmq_transport);
+    void handle_tf(geometry_msgs::msg::TransformStamped& transform, ZmqTransport* zmq_transport);
 
 private:
     rcl_allocator_t* alloc;
     rcl_context_t* context;
     rcl_node_t node;
-    rcl_wait_set_t wait_set_;
+    rcl_wait_set_t wait_set_sub_;
+    rcl_wait_set_t wait_set_service_;
 
-    std::mutex mutex;
-    std::queue<std::function<void()>> actions;
+    std::mutex sub_mutex;
+    std::queue<std::function<void()>> add_sub_actions;
+    std::mutex service_mutex;
+    std::queue<std::function<void()>> add_service_actions;
 
-    volatile bool running;
+    bool running;
     std::thread thread;
+    std::thread service_thread;
+    
     struct Publisher
     {
         rcl_publisher_t pub;
         const MessageType* type;
-        std::unordered_set<BridgeClient*> clients;
+        ZmqTransport* zmq_transport;
     };
     typedef std::unordered_map<std::string, Publisher> Publishers;
     Publishers publishers;
@@ -88,7 +85,7 @@ private:
         rcl_subscription_t sub;
         const MessageType* type;
         std::string topic;
-        std::unordered_set<BridgeClient*> clients;
+        ZmqTransport* zmq_transport;
     };
     typedef std::vector<std::unique_ptr<Subscriber>> Subscribers;
     Subscribers subscribers;
@@ -99,7 +96,7 @@ private:
         const MessageType* type_req;
         const MessageType* type_res;
         std::string topic;
-        std::unordered_set<BridgeClient*> clients;
+        ZmqTransport* zmq_transport;
     };
     typedef std::vector<std::unique_ptr<ServiceServer>> ServiceServers;
     ServiceServers service_servers;
@@ -110,7 +107,7 @@ private:
         const MessageType* type_req;
         const MessageType* type_res;
         std::string topic;
-        std::unordered_set<BridgeClient*> clients;
+        ZmqTransport* zmq_transport;
     };
     typedef std::unordered_map<std::string, ServiceClient> ServiceClients;
     ServiceClients service_clients;
@@ -119,12 +116,16 @@ private:
 
     void execute();
     void handle_message(Subscriber* sub);
-    void handle_service(ServiceServer* ss);
 
-    BridgeNode(const BridgeNode&) = delete;
-    BridgeNode& operator = (const BridgeNode&) = delete;
+    void execute_service();
+    void handle_service(ServiceServer *activate_server);
+
+    rmw_qos_profile_t parseQosString(std::string qos_string);
+
+    BridgeRclNode(const BridgeRclNode&) = delete;
+    BridgeRclNode& operator = (const BridgeRclNode&) = delete;
 
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 };
 
-#endif // _CLOUD_BRIDGE_NODE_H_
+#endif // _CLOUD_BRIDGE_RCL_NODE_H_

@@ -39,11 +39,14 @@ set(LIBS
 )
 
 set(CPPS
-  src/cloud_bridge.cpp
-  src/bridge_node.cpp
-  src/bridge_client.cpp
+  src/cloud_bridge_base.cpp
+  src/cloud_bridge_server.cpp
+  src/cloud_bridge_client.cpp
+  src/bridge_rcl_node.cpp
+  src/zmq_transport.cpp
   src/message_types.cpp
 )
+
 
 include_directories(include)
 

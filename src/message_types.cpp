@@ -401,16 +401,14 @@ struct Reader
                 UNS_SIMPLE_CASE(UINT32,  uint32_t, ptr);
                 UNS_SIMPLE_CASE(INT32,   int32_t,  ptr);
                 UNS_SIMPLE_CASE(UINT64,  uint64_t, ptr);
-                // UNS_SIMPLE_CASE(INT64,   int64_t,  ptr);
-                case rosidl_typesupport_introspection_c__ROS_TYPE_INT64: 
-                {
-                    LOG("sizeof(int64_t): " << sizeof(int64_t));
-                    UNS_CHECK_SIZE(sizeof(int64_t));
-                    *(int64_t*)ptr = *(int64_t*)&data[offset];
-                    LOG("*(int64_t*)&data[offset] " << *(int64_t*)&data[offset]);
-                    offset += sizeof(int64_t);
-                    break;                                              
-                }                
+                UNS_SIMPLE_CASE(INT64,   int64_t,  ptr);
+                // case rosidl_typesupport_introspection_c__ROS_TYPE_INT64: 
+                // {
+                //     UNS_CHECK_SIZE(sizeof(int64_t));
+                //     *(int64_t*)ptr = *(int64_t*)&data[offset];
+                //     offset += sizeof(int64_t);
+                //     break;                                              
+                // }                
 
                 case rosidl_typesupport_introspection_c__ROS_TYPE_STRING:
                 {
@@ -600,15 +598,7 @@ void Serialize(void* msg, const rosidl_message_type_support_t* type, std::vector
             SER_SIMPLE_CASE(UINT32,  uint32_t, ptr);
             SER_SIMPLE_CASE(INT32,   int32_t,  ptr);
             SER_SIMPLE_CASE(UINT64,  uint64_t, ptr);
-            // SER_SIMPLE_CASE(INT64,   int64_t,  ptr);
-            case rosidl_typesupport_introspection_c__ROS_TYPE_INT64: 
-            {
-                int64_t var = *(int64_t*)ptr;
-                LOG("********  int64_t var " << var);
-                data.resize(data.size() + sizeof(int64_t));         
-                *(int64_t*)&data[data.size() - sizeof(int64_t)] = var; 
-                break;                                              
-            }
+            SER_SIMPLE_CASE(INT64,   int64_t,  ptr);
 
             case rosidl_typesupport_introspection_c__ROS_TYPE_STRING:
             {
