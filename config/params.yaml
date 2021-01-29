@@ -123,4 +123,13 @@
 
     color_compressed:
       topic: "front/color/image_raw/compressed"
-      msg: "sensor_msgs/msg/CompressedImage"      
+      msg: "sensor_msgs/msg/CompressedImage"
+    
+    add_two_ints:
+      service: "/add_two_ints"
+      srv: "example_interfaces/srv/AddTwoInts"
+
+    demo_node_talker:
+      topic: "/chatter"
+      msg: "std_msgs/msg/String"
+      qos: "system_default"      

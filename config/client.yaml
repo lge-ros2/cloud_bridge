@@ -26,3 +26,4 @@
     - is_door_opened
     - request_door_open
     - select_elevator_floor
+    - add_two_ints

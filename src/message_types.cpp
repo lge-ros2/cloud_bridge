@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <iostream>
 
 #include <rosidl_runtime_c/string_functions.h>
 #include <rosidl_runtime_c/primitives_sequence_functions.h>
@@ -39,11 +40,47 @@ MessageTypes::~MessageTypes()
     }
 }
 
-const MessageType* MessageTypes::get(const std::string& type)
+const rosidl_service_type_support_t* MessageTypes::get_srv_type_support(const std::string& type)
+{
+    DEBUG("Searching for srv " << type << " type");
+    size_t split = type.find('/');
+    if (split == std::string::npos)
+    {
+        ERROR("No '/' in message type " << type);
+        return NULL;
+    }
+
+    std::string package = type.substr(0, split);
+    std::string name = type.substr(split + 1);
+    split = name.find('/');
+    while(split != std::string::npos) {
+        name = name.substr(split+1);
+        split = name.find('/');
+    }
+
+    std::string symbol_identifier = "__srv__" + name;
+
+    void* type_support = load_lib(package + "__rosidl_typesupport_c");
+    if (!type_support)
+    {
+        return NULL;
+    }
+    std::string type_support_symbol_name = "rosidl_typesupport_c__get_service_type_support_handle__" + package + symbol_identifier;
+    void* type_support_symbol = getsym(type_support, type_support_symbol_name);
+    if (!type_support_symbol)
+    {
+        ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type << " type");
+        return NULL;
+    }
+    auto get_type_support_handle = (const rosidl_service_type_support_t* (*)(void))type_support_symbol;
+    return get_type_support_handle();
+}
+
+const MessageType* MessageTypes::get(const std::string& type, const std::string& category)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = messages.find(type);
+    auto it = messages.find(type+"_"+category);
     if (it != messages.end())
     {
         return &it->second;
@@ -65,6 +102,13 @@ const MessageType* MessageTypes::get(const std::string& type)
         split = name.find('/');
     }
 
+    std::string symbol_identifier = "__msg__" + name;
+    if(category == "request") {
+        symbol_identifier = "__srv__" + name + "_Request";
+    } else if(category == "response") {
+        symbol_identifier = "__srv__" + name + "_Response";
+    }
+
     // type_support
     // {
     void* type_support = load_lib(package + "__rosidl_typesupport_c");
@@ -72,11 +116,11 @@ const MessageType* MessageTypes::get(const std::string& type)
     {
         return NULL;
     }
-    std::string type_support_symbol_name = "rosidl_typesupport_c__get_message_type_support_handle__" + package + "__msg__" + name;
+    std::string type_support_symbol_name = "rosidl_typesupport_c__get_message_type_support_handle__" + package + symbol_identifier;
     void* type_support_symbol = getsym(type_support, type_support_symbol_name);
     if (!type_support_symbol)
     {
-        ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type << " type");
+        ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type+"_"+category);
         return NULL;
     }
     auto get_type_support_hande = (const rosidl_message_type_support_t* (*)(void))type_support_symbol;
@@ -89,11 +133,11 @@ const MessageType* MessageTypes::get(const std::string& type)
     {
         return NULL;
     }
-    std::string introspection_symbol_name = "rosidl_typesupport_introspection_c__get_message_type_support_handle__" + package + "__msg__" + name;
+    std::string introspection_symbol_name = "rosidl_typesupport_introspection_c__get_message_type_support_handle__" + package + symbol_identifier;
     void* introspection_symbol = getsym(introspection, introspection_symbol_name);
     if (!introspection_symbol)
     {
-        ERROR("Cannot get " << introspection_symbol_name << " symbol in introspection library for " << type << " type");
+        ERROR("Cannot get " << introspection_symbol_name << " symbol in introspection library for " << type+"_"+category);
         return NULL;
     }
     auto get_introspection_hande = (const rosidl_message_type_support_t* (*)(void))introspection_symbol;
@@ -106,23 +150,23 @@ const MessageType* MessageTypes::get(const std::string& type)
     {
         return NULL;
     }
-    std::string init_name = package + "__msg__" + name + "__init";
+    std::string init_name = package + symbol_identifier + "__init";
     void* init_symbol = getsym(generator, init_name);
     if (!init_symbol)
     {
-        ERROR("Cannot get " << init_name << " symbol in generator library for " << type << " type");
+        ERROR("Cannot get " << init_name << " symbol in generator library for " << type+"_"+category);
         return NULL;
     }
-    std::string fini_name = package + "__msg__" + name + "__fini";
+    std::string fini_name = package + symbol_identifier + "__fini";
     void* fini_symbol = getsym(generator, fini_name);
     if (!fini_symbol)
     {
-        ERROR("Cannot get " << fini_name << " symbol in generator library for " << type << " type");
+        ERROR("Cannot get " << fini_name << " symbol in generator library for " << type+"_"+category);
         return NULL;
     }
     // }
     
-    LOG("Loaded type support for " << type << " type");
+    LOG("Loaded type support for " << type+"_"+category);
 
     MessageType mtype;
     mtype.type_support = get_type_support_hande();
@@ -132,7 +176,7 @@ const MessageType* MessageTypes::get(const std::string& type)
     mtype.fini = (void (*)(void*))fini_symbol;
     mtype.type_string = std::string(type.c_str());
 
-    it = messages.insert(std::make_pair(type, mtype)).first;
+    it = messages.insert(std::make_pair(type+"_"+category, mtype)).first;
     return &it->second;
 }
 
@@ -243,7 +287,6 @@ struct Reader
     bool read(void* msg, const rosidl_message_type_support_t* type)
     {
         auto info = (const rosidl_typesupport_introspection_c__MessageMembers*)type->data;
-
         for (uint32_t i=0; i<info->member_count_; i++)
         {
             auto member = info->members_ + i;
@@ -359,6 +402,13 @@ struct Reader
                 UNS_SIMPLE_CASE(INT32,   int32_t,  ptr);
                 UNS_SIMPLE_CASE(UINT64,  uint64_t, ptr);
                 UNS_SIMPLE_CASE(INT64,   int64_t,  ptr);
+                // case rosidl_typesupport_introspection_c__ROS_TYPE_INT64: 
+                // {
+                //     UNS_CHECK_SIZE(sizeof(int64_t));
+                //     *(int64_t*)ptr = *(int64_t*)&data[offset];
+                //     offset += sizeof(int64_t);
+                //     break;                                              
+                // }                
 
                 case rosidl_typesupport_introspection_c__ROS_TYPE_STRING:
                 {
@@ -398,9 +448,8 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
     bool ok = reader.read(msg, type);
     if (reader.offset != reader.size)
     {
-        // NOTE: if you see this message, verify that your C# structure has correct fields!
         // Compare with .msg file, including other referenced messages - make sure all the types match exactly
-        LOG("Did not fully use all data for unserialization, offset=" << reader.offset << ", size=" << reader.size);
+        ERROR("Did not fully use all data for unserialization, offset=" << reader.offset << ", size=" << reader.size);
     }
     return ok;
 }
@@ -415,7 +464,7 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
 
 #define SER_STRING(ptr)                                         \
     {                                                           \
-        auto str = (rosidl_runtime_c__String*)ptr;            \
+        auto str = (rosidl_runtime_c__String*)ptr;              \
         uint32_t length = (uint32_t)str->size;                  \
         SER_SIMPLE(uint32_t, &length);                          \
         data.insert(data.end(), str->data, str->data + length); \
@@ -435,7 +484,7 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
         void* arrdata;                                                              \
         if (member->array_size_ == 0)                                               \
         {                                                                           \
-            auto arr = (rosidl_runtime_c__##idtype##__Sequence*)ptr;              \
+            auto arr = (rosidl_runtime_c__##idtype##__Sequence*)ptr;                \
             arrcount = (uint32_t)arr->size;                                         \
             arrdata = arr->data;                                                    \
         }                                                                           \
@@ -453,11 +502,9 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
 void Serialize(void* msg, const rosidl_message_type_support_t* type, std::vector<uint8_t>& data)
 {
     auto info = (const rosidl_typesupport_introspection_c__MessageMembers*)type->data;
-
     for (uint32_t i=0; i<info->member_count_; i++)
     {
         auto member = info->members_ + i;
-
         void* ptr = (uint8_t*)msg + member->offset_;
         if (member->is_array_)
         {
