@@ -39,11 +39,47 @@ MessageTypes::~MessageTypes()
     }
 }
 
-const MessageType* MessageTypes::get(const std::string& type)
+const rosidl_service_type_support_t* MessageTypes::get_srv_type_support(const std::string& type)
+{
+    DEBUG("Searching for " << type << " type");
+    size_t split = type.find('/');
+    if (split == std::string::npos)
+    {
+        ERROR("No '/' in message type " << type);
+        return NULL;
+    }
+
+    std::string package = type.substr(0, split);
+    std::string name = type.substr(split + 1);
+    split = name.find('/');
+    while(split != std::string::npos) {
+        name = name.substr(split+1);
+        split = name.find('/');
+    }
+
+    std::string symbol_identifier = "__srv__" + name;
+
+    void* type_support = load_lib(package + "__rosidl_typesupport_c");
+    if (!type_support)
+    {
+        return NULL;
+    }
+    std::string type_support_symbol_name = "rosidl_typesupport_c__get_service_type_support_handle__" + package + symbol_identifier;
+    void* type_support_symbol = getsym(type_support, type_support_symbol_name);
+    if (!type_support_symbol)
+    {
+        ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type << " type");
+        return NULL;
+    }
+    auto get_type_support_handle = (const rosidl_service_type_support_t* (*)(void))type_support_symbol;
+    return get_type_support_handle();
+}
+
+const MessageType* MessageTypes::get(const std::string& type, const std::string& category)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
-    auto it = messages.find(type);
+    auto it = messages.find(type+"_"+category);
     if (it != messages.end())
     {
         return &it->second;
@@ -65,6 +101,13 @@ const MessageType* MessageTypes::get(const std::string& type)
         split = name.find('/');
     }
 
+    std::string symbol_identifier = "__msg__" + name;
+    if(category == "request") {
+        symbol_identifier = "__srv__" + name + "_Request";
+    } else if(category == "response") {
+        symbol_identifier = "__srv__" + name + "_Response";
+    }
+
     // type_support
     // {
     void* type_support = load_lib(package + "__rosidl_typesupport_c");
@@ -72,14 +115,14 @@ const MessageType* MessageTypes::get(const std::string& type)
     {
         return NULL;
     }
-    std::string type_support_symbol_name = "rosidl_typesupport_c__get_message_type_support_handle__" + package + "__msg__" + name;
+    std::string type_support_symbol_name = "rosidl_typesupport_c__get_message_type_support_handle__" + package + symbol_identifier;
     void* type_support_symbol = getsym(type_support, type_support_symbol_name);
     if (!type_support_symbol)
     {
         ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type << " type");
         return NULL;
     }
-    auto get_type_support_hande = (const rosidl_message_type_support_t* (*)(void))type_support_symbol;
+    auto get_type_support_handle = (const rosidl_message_type_support_t* (*)(void))type_support_symbol;
     // }
 
     // introspection
@@ -89,14 +132,14 @@ const MessageType* MessageTypes::get(const std::string& type)
     {
         return NULL;
     }
-    std::string introspection_symbol_name = "rosidl_typesupport_introspection_c__get_message_type_support_handle__" + package + "__msg__" + name;
+    std::string introspection_symbol_name = "rosidl_typesupport_introspection_c__get_message_type_support_handle__" + package + symbol_identifier;
     void* introspection_symbol = getsym(introspection, introspection_symbol_name);
     if (!introspection_symbol)
     {
         ERROR("Cannot get " << introspection_symbol_name << " symbol in introspection library for " << type << " type");
         return NULL;
     }
-    auto get_introspection_hande = (const rosidl_message_type_support_t* (*)(void))introspection_symbol;
+    auto get_introspection_handle = (const rosidl_message_type_support_t* (*)(void))introspection_symbol;
     // }
 
     // generator
@@ -106,14 +149,14 @@ const MessageType* MessageTypes::get(const std::string& type)
     {
         return NULL;
     }
-    std::string init_name = package + "__msg__" + name + "__init";
+    std::string init_name = package + symbol_identifier + "__init";
     void* init_symbol = getsym(generator, init_name);
     if (!init_symbol)
     {
         ERROR("Cannot get " << init_name << " symbol in generator library for " << type << " type");
         return NULL;
     }
-    std::string fini_name = package + "__msg__" + name + "__fini";
+    std::string fini_name = package + symbol_identifier + "__fini";
     void* fini_symbol = getsym(generator, fini_name);
     if (!fini_symbol)
     {
@@ -122,17 +165,17 @@ const MessageType* MessageTypes::get(const std::string& type)
     }
     // }
     
-    LOG("Loaded type support for " << type << " type");
+    LOG("Loaded type support for type: " << type << "_" << category);
 
     MessageType mtype;
-    mtype.type_support = get_type_support_hande();
-    mtype.introspection = get_introspection_hande();
+    mtype.type_support = get_type_support_handle();
+    mtype.introspection = get_introspection_handle();
     mtype.size = ((const rosidl_typesupport_introspection_c__MessageMembers*)mtype.introspection->data)->size_of_;
     mtype.init = (bool (*)(void*))init_symbol;
     mtype.fini = (void (*)(void*))fini_symbol;
     mtype.type_string = std::string(type.c_str());
 
-    it = messages.insert(std::make_pair(type, mtype)).first;
+    it = messages.insert(std::make_pair(type+"_"+category, mtype)).first;
     return &it->second;
 }
 
