@@ -12,15 +12,14 @@
     - clock
     - bt_elev
     - bt_elev_cancel
-    - front_color_compressed
+    - color_compressed
+    - move_simple
     - goal_pose
-    - demo_node_talker
     tf_list:
     - odom_basefootprint
     srv_server_list:
     - load_map
     srv_client_list:
-    - add_two_ints
     - call_elevator
     - get_called_elevator
     - get_elevator_information
