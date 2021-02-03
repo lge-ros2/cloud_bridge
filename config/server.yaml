@@ -5,6 +5,10 @@
     pub_port: 25568
     req_port: 25569
     rep_port: 25570
+    host_sub_port: 25576
+    host_pub_port: 25577
+    host_req_port: 25578
+    host_rep_port: 25579    
     sub_list:
     - cmd_vel
     - plan
