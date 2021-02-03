@@ -30,10 +30,26 @@ CloudBridgeServer::CloudBridgeServer(string nodeName)
   m_iReqPort = declare_parameter("req_port", 25569);
   m_iRepPort = declare_parameter("rep_port", 25570);
 
-  Setup(); // 달라짐
-  initBridgeRclNode();
-  initBridgeParams();
-  Connect(); // 달라짐
+  m_iHostSubPort = declare_parameter("host_sub_port", m_iSubPort);
+  m_iHostPubPort = declare_parameter("host_pub_port", m_iPubPort);
+  m_iHostReqPort = declare_parameter("host_req_port", m_iReqPort);
+  m_iHostRepPort = declare_parameter("host_rep_port", m_iRepPort);
+
+  ERROR("CloudBridgeServer ports");
+  ERROR("\t manage: " << m_iManagePort);
+  ERROR("\t sub: " << m_iSubPort);
+  ERROR("\t pub: " << m_iPubPort);
+  ERROR("\t req: " << m_iReqPort);
+  ERROR("\t rep: " << m_iRepPort);
+  ERROR("\t host_sub: " << m_iHostSubPort);
+  ERROR("\t host_pub: " << m_iHostPubPort);
+  ERROR("\t host_req: " << m_iHostReqPort);
+  ERROR("\t host_rep: " << m_iHostRepPort);
+
+  Setup();
+  initBridgeRclNode(); // from CloudBridgeBase
+  initBridgeParams();  // from CloudBridgeBase
+  Connect();
 }
 
 CloudBridgeServer::~CloudBridgeServer()
@@ -90,25 +106,25 @@ void CloudBridgeServer::ReadManageProc()
       replyData.reserve(sizeof(uint8_t) + sizeof(uint32_t) * 4);
       replyData.push_back(recvData[0]);
 
-      replyData.push_back(uint8_t(m_iPubPort >> 0));
-      replyData.push_back(uint8_t(m_iPubPort >> 8));
-      replyData.push_back(uint8_t(m_iPubPort >> 16));
-      replyData.push_back(uint8_t(m_iPubPort >> 24));
+      replyData.push_back(uint8_t(m_iHostPubPort >> 0));
+      replyData.push_back(uint8_t(m_iHostPubPort >> 8));
+      replyData.push_back(uint8_t(m_iHostPubPort >> 16));
+      replyData.push_back(uint8_t(m_iHostPubPort >> 24));
 
-      replyData.push_back(uint8_t(m_iSubPort >> 0));
-      replyData.push_back(uint8_t(m_iSubPort >> 8));
-      replyData.push_back(uint8_t(m_iSubPort >> 16));
-      replyData.push_back(uint8_t(m_iSubPort >> 24));
+      replyData.push_back(uint8_t(m_iHostSubPort >> 0));
+      replyData.push_back(uint8_t(m_iHostSubPort >> 8));
+      replyData.push_back(uint8_t(m_iHostSubPort >> 16));
+      replyData.push_back(uint8_t(m_iHostSubPort >> 24));
 
-      replyData.push_back(uint8_t(m_iReqPort >> 0));
-      replyData.push_back(uint8_t(m_iReqPort >> 8));
-      replyData.push_back(uint8_t(m_iReqPort >> 16));
-      replyData.push_back(uint8_t(m_iReqPort >> 24));
+      replyData.push_back(uint8_t(m_iHostReqPort >> 0));
+      replyData.push_back(uint8_t(m_iHostReqPort >> 8));
+      replyData.push_back(uint8_t(m_iHostReqPort >> 16));
+      replyData.push_back(uint8_t(m_iHostReqPort >> 24));
 
-      replyData.push_back(uint8_t(m_iRepPort >> 0));
-      replyData.push_back(uint8_t(m_iRepPort >> 8));
-      replyData.push_back(uint8_t(m_iRepPort >> 16));
-      replyData.push_back(uint8_t(m_iRepPort >> 24));            
+      replyData.push_back(uint8_t(m_iHostRepPort >> 0));
+      replyData.push_back(uint8_t(m_iHostRepPort >> 8));
+      replyData.push_back(uint8_t(m_iHostRepPort >> 16));
+      replyData.push_back(uint8_t(m_iHostRepPort >> 24));            
     }
     SendManageReply(replyData.data(), replyData.size(), false);
   }
@@ -144,6 +160,7 @@ bool CloudBridgeServer::SendManageReply(const void* buffer, const int bufferLeng
 
 bool CloudBridgeServer::Connect() 
 {
+
   std::string subAddress = "tcp://*:" + std::to_string(m_iSubPort);
   std::string pubAddress = "tcp://*:" + std::to_string(m_iPubPort);
   std::string reqAddress = "tcp://*:" + std::to_string(m_iReqPort);

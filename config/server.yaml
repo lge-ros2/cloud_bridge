@@ -1,10 +1,14 @@
 /**:
   ros__parameters:
-    manage_port: 25565
-    sub_port: 25567
-    pub_port: 25568
-    req_port: 25569
-    rep_port: 25570
+    manage_port: 26565
+    sub_port: 26566
+    pub_port: 26567
+    req_port: 26568
+    rep_port: 26569
+    host_sub_port: 26566
+    host_pub_port: 26567
+    host_req_port: 26568
+    host_rep_port: 26569  
     sub_list:
     - cmd_vel
     - plan
