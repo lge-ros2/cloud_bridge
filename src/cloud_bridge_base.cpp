@@ -83,12 +83,10 @@ void CloudBridgeBase::initBridgeParams() {
   std::map<std::string, std::string> qos_map;
   for(unsigned int vi=0; vi<m_vectorParams.size(); vi++) {
     std::string source = m_vectorParams[vi];
-    // LOG("CloudBridgeBase::"<< __FUNCTION__ << ", add params for qos: " << source);
     std::string topic;
     std::string qos;
     topic = declare_parameter(source + "." + "topic", "");
     qos = declare_parameter(source + "." + "qos", "");
-    // LOG("  - topic: " << topic << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && qos.compare("") != 0) {
       qos_map.insert(make_pair(topic, qos));
     }
@@ -99,14 +97,14 @@ void CloudBridgeBase::initBridgeParams() {
   
   for(unsigned int vi=0; vi<m_vectorSubTopic.size(); vi++) {
     std::string source = m_vectorSubTopic[vi];
-    LOG("CloudBridgeBase::"<< __FUNCTION__ << ", add subscriber: " << source);
+    LOG("CloudBridgeBase add subscriber: " << source);
     std::string topic;
     std::string msg;
     std::string qos;
     topic = declare_parameter(source + "." + "topic", "");
     msg = declare_parameter(source + "." + "msg", "");
     qos = declare_parameter(source + "." + "qos", "");
-    LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+    DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
       bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
     }
@@ -117,14 +115,14 @@ void CloudBridgeBase::initBridgeParams() {
 
   for(unsigned int vi=0; vi<m_vectorPubTopic.size(); vi++) {
     std::string source = m_vectorPubTopic[vi];
-    LOG("CloudBridgeBase::"<< __FUNCTION__ << ", add publisher: " << source);
+    LOG("CloudBridgeBase add publisher: " << source);
     std::string topic;
     std::string msg;
     std::string qos;
     topic = declare_parameter(source + "." + "topic", "");
     msg = declare_parameter(source + "." + "msg", "");
     qos = declare_parameter(source + "." + "qos", "");
-    LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+    DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
       bridge_rcl_node_->add_publisher(topic, msg, zmq_transport_, qos);
     }
@@ -135,12 +133,12 @@ void CloudBridgeBase::initBridgeParams() {
 
   for(unsigned int vi=0; vi<m_vectorSrvServer.size(); vi++) {
     std::string source = m_vectorSrvServer[vi];
-    LOG("CloudBridgeBase::"<< __FUNCTION__ << ", add srv server: " << source);
+    LOG("CloudBridgeBase add srv server: " << source);
     std::string service;
     std::string srv;
     service = declare_parameter(source + "." + "service", "");
     srv = declare_parameter(source + "." + "srv", "");
-    LOG("  - service: " << service << ", type: " << srv);
+    DEBUG("  - service: " << service << ", type: " << srv);
     if(service.compare("") != 0 && srv.compare("") != 0) {
       bridge_rcl_node_->add_service_server(service, srv, zmq_transport_);
     }
@@ -150,12 +148,12 @@ void CloudBridgeBase::initBridgeParams() {
 
   for(unsigned int vi=0; vi<m_vectorSrvClient.size(); vi++) {
     std::string source = m_vectorSrvClient[vi];
-    LOG("CloudBridgeBase::"<< __FUNCTION__ << ", add srv client: " << source);
+    LOG("CloudBridgeBase add srv client: " << source);
     std::string service;
     std::string srv;
     service = declare_parameter(source + "." + "service", "");
     srv = declare_parameter(source + "." + "srv", "");
-    LOG("  - service: " << service << ", type: " << srv);
+    DEBUG("  - service: " << service << ", type: " << srv);
     if(service.compare("") != 0 && srv.compare("") != 0) {
       bridge_rcl_node_->add_service_client(service, srv, zmq_transport_);
     }
@@ -170,7 +168,7 @@ void CloudBridgeBase::initBridgeParams() {
     baseFrame = declare_parameter(source + "." + "base_frame", "");
     childFrame = declare_parameter(source + "." + "child_frame", "");
 
-    LOG("TransformListen "<< baseFrame << " to " << childFrame);
+    LOG("CloudBridgeBase TransformListen "<< baseFrame << " to " << childFrame);
     if(baseFrame.compare("") != 0 && childFrame.compare("") != 0) {
       auto tfThread2 = std::thread(
         [this](std::string baseFrame, std::string childFrame,  

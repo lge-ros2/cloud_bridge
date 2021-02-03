@@ -115,10 +115,10 @@ private:
 
     MessageTypes types;
 
-    void execute();
+    void spin_subscribe();
     void handle_message(Subscriber* sub);
 
-    void execute_service();
+    void spin_service_server();
     void handle_service(ServiceServer *activate_server);
 
     rmw_qos_profile_t parseQosString(std::string qos_string);

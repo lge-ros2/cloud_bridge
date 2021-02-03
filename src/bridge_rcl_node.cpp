@@ -29,16 +29,17 @@ BridgeRclNode::BridgeRclNode(rcl_allocator_t *alloc, rcl_context_t *context, std
     wait_set_sub_(rcl_get_zero_initialized_wait_set()),
     wait_set_service_(rcl_get_zero_initialized_wait_set())
 {
+    running = true;
     rcl_node_options_t opts = rcl_node_get_default_options();
     rcl_ret_t rc;
 
-    rc = rcl_node_init(&node, "cloud_bridge_bridge_node", ns.c_str(), context, &opts);
+    rc = rcl_node_init(&node, "cloud_bridge_rcl_node", ns.c_str(), context, &opts);
     if (rc != RCL_RET_OK)
     {
         ERROR("rcl_node_init failed: " << rc);
     }
-    thread = std::thread(&BridgeRclNode::execute, this);
-    service_thread = std::thread(&BridgeRclNode::execute_service, this);
+    thread = std::thread(&BridgeRclNode::spin_subscribe, this);
+    service_thread = std::thread(&BridgeRclNode::spin_service_server, this);
     auto node_handle = std::make_shared<rclcpp::Node>("cloud_bridge_tf_node", ns.c_str());
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_handle);
 }
@@ -88,12 +89,13 @@ BridgeRclNode::~BridgeRclNode()
     }
 }
 
-void BridgeRclNode::execute()
+void BridgeRclNode::spin_subscribe()
 {
     size_t sub_count = 0;
     rcl_ret_t rc;
 
     const unsigned int timeout = 100; // msec
+    running = true;
     while (running)
     {
         size_t new_sub_count;
@@ -170,7 +172,7 @@ void BridgeRclNode::execute()
     }
 }
 
-void BridgeRclNode::execute_service()
+void BridgeRclNode::spin_service_server()
 {
     size_t service_count = 0;
     rcl_ret_t rc;
@@ -259,22 +261,15 @@ rmw_qos_profile_t BridgeRclNode::parseQosString(std::string qos_string)
   rmw_qos_profile_t qos = rmw_qos_profile_default;
 //   qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
 //   if(qos_string == "sensor_data") {
-//     LOG("parseQosString rmw_qos_profile_sensor_data");
 //     qos = rmw_qos_profile_sensor_data;
 //   } else if(qos_string == "parameters") {
-//     LOG("parseQosString rmw_qos_profile_parameters");
 //     qos = rmw_qos_profile_parameters;
 //   } else if(qos_string == "parameter_events") {
-//     LOG("parseQosString rmw_qos_profile_parameter_events");
 //     qos = rmw_qos_profile_parameter_events;
 //   } else if(qos_string == "system_default") {
-//     LOG("parseQosString rmw_qos_profile_system_default");
 //     qos = rmw_qos_profile_system_default;
 //   } else if(qos_string == "services_default") {
-//     LOG("parseQosString rmw_qos_profile_services_default");
 //     qos = rmw_qos_profile_services_default;
-//   } else{
-//     LOG("parseQosString rmw_qos_profile_default");
 //   }
 
   return qos;
@@ -317,7 +312,7 @@ void BridgeRclNode::add_subscriber(const std::string &topic, const std::string &
         auto it = subscribers.insert(subscribers.end(), std::move(s));
         assert((void *)it->get() == (void *)&it->get()->sub);
 
-        LOG("BridgeRclNode, Subscribed " << type << " on " << topic);
+        DEBUG("BridgeRclNode, Subscribed " << type << " on " << topic);
     };
 
     std::lock_guard<std::mutex> lock(sub_mutex);
@@ -357,7 +352,7 @@ void BridgeRclNode::add_publisher(const std::string &topic, const std::string &t
 
     publishers.insert(std::make_pair(topic, p));
 
-    LOG("Publishing " << type << " on " << topic);
+    DEBUG("Publishing " << type << " on " << topic);
 }
 
 void BridgeRclNode::add_service_server(const std::string& topic, const std::string& type,
@@ -400,7 +395,7 @@ void BridgeRclNode::add_service_server(const std::string& topic, const std::stri
         auto it = service_servers.insert(service_servers.end(), std::move(new_service_server));
         assert((void *)it->get() == (void *)&it->get()->rcl_service);
 
-        LOG("Service Served " << type << " on " << topic);
+        DEBUG("Service Served " << type << " on " << topic);
     };
 
     std::lock_guard<std::mutex> lock(service_mutex);
@@ -442,7 +437,7 @@ void BridgeRclNode::add_service_client(const std::string& topic, const std::stri
     service_client.zmq_transport = zmq_transport;
     service_clients.insert(std::make_pair(topic, service_client));
 
-    LOG("Service Client " << type << " on " << topic);
+    DEBUG("Service Client " << type << " on " << topic);
 }
 
 void BridgeRclNode::publish(const std::string &topic, const std::vector<uint8_t> &data)
@@ -477,6 +472,7 @@ void BridgeRclNode::publish(const std::string &topic, const std::vector<uint8_t>
 
         const MessageType *type = it->second.type;
         rcl_publisher_t *pub = &it->second.pub;
+
 
         void *msg = malloc(type->size);
         if (msg)

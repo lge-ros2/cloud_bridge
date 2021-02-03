@@ -31,6 +31,11 @@ protected:
   bool Connect();
 
 private:
+  int m_iHostSubPort;
+  int m_iHostPubPort;
+  int m_iHostReqPort;
+  int m_iHostRepPort;
+
   std::thread m_threadManageProc;
 
   void ReadManageProc();

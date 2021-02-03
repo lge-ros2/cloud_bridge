@@ -165,7 +165,7 @@ const MessageType* MessageTypes::get(const std::string& type, const std::string&
     }
     // }
     
-    LOG("Loaded type support for type: " << type << "_" << category);
+    DEBUG("Loaded type support for type: " << type << "_" << category);
 
     MessageType mtype;
     mtype.type_support = get_type_support_handle();

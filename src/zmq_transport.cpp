@@ -79,7 +79,7 @@ void ZmqTransport::read_zmq_sub()
     const bool succeeded = receive_zmq(&pBuffer, bufferLength);
     if (!succeeded || bufferLength < 0)
     {
-      LOG("zmq receive error return size(" << bufferLength << "): " << zmq_strerror(zmq_errno()));
+      ERROR("zmq receive error return size(" << bufferLength << "): " << zmq_strerror(zmq_errno()));
       continue;
     }
     
