@@ -45,6 +45,13 @@ def generate_launch_description():
     # Set remapping topic tuple list
     remapping_list = set_remapping_list(remap_topic_list)
 
+    logger = launch.substitutions.LaunchConfiguration("log_level")
+    log_level = launch.actions.DeclareLaunchArgument(
+        "log_level",
+        default_value=["error"],
+        description="Logging level",
+    )
+
     # Create actions nodes
     cloud_trans_client_node = launch_ros.actions.Node(
         package='cloud_bridge',
@@ -52,11 +59,12 @@ def generate_launch_description():
         namespace=namespace,
         remappings=remapping_list,
         parameters=[configured_params, param_filename, param_list_params],
+        arguments=['--ros-args', '--log-level', logger],
         output='screen')
 
     # Create the launch description and populate
     ld = launch.LaunchDescription()
-
+    ld.add_action(log_level)
     ld.add_action(cloud_trans_client_node)
 
     return ld

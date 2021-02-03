@@ -26,7 +26,10 @@ CloudBridgeClient::CloudBridgeClient(string nodeName)
   // Get Parameters for connect
   m_strCloudIp = declare_parameter("cloud_ip", "127.0.0.1");
   m_iManagePort = declare_parameter("manage_port", 25565);
-
+  
+  ERROR("CloudBridgeClient ports");
+  ERROR("\t manage: " << m_iManagePort);
+  
   Setup();
   initBridgeRclNode();  // from CloudBridgeBase
   initBridgeParams();   // from CloudBridgeBase
@@ -140,6 +143,11 @@ bool CloudBridgeClient::Connect()
   std::string pubAddress = "tcp://" + m_strCloudIp + ":" + std::to_string(m_iPubPort);
   std::string reqAddress = "tcp://" + m_strCloudIp + ":" + std::to_string(m_iReqPort);
   std::string repAddress = "tcp://" + m_strCloudIp + ":" + std::to_string(m_iRepPort);
+
+  ERROR("\t sub: " << m_iSubPort);
+  ERROR("\t pub: " << m_iPubPort);
+  ERROR("\t req: " << m_iReqPort);
+  ERROR("\t rep: " << m_iRepPort);
 
   // Connect Pub Socket
   LOG("Zmq Connect PubSocket to " << pubAddress.c_str());

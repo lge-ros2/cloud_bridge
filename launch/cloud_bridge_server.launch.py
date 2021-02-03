@@ -33,7 +33,8 @@ def generate_launch_description():
     param_list_params = get_param_list_params(param_filename)
     
     # Create our own temporary YAML files that include substitutions
-    rewritten_list = ['manage_port', 'sub_port', 'pub_port', 'req_port', 'rep_port']
+    rewritten_list = ['manage_port', 'sub_port', 'pub_port', 'req_port', 'rep_port',
+        'host_sub_port', 'host_pub_port', 'host_req_port', 'host_rep_port']
     configured_params = get_configured_params(config_filename, rewritten_list)
 
     # Get namespace in argument
@@ -41,7 +42,13 @@ def generate_launch_description():
     
     # Set remapping topic tuple list
     remapping_list = set_remapping_list(remap_topic_list)
-  
+
+    logger = launch.substitutions.LaunchConfiguration("log_level")  
+    log_level = launch.actions.DeclareLaunchArgument(
+        "log_level",
+        default_value=["error"],
+        description="Logging level",
+    )  
     # Create actions nodes
     cloud_trans_server = launch_ros.actions.Node(
         package='cloud_bridge',
@@ -49,11 +56,12 @@ def generate_launch_description():
         namespace=namespace,
         remappings=remapping_list,
         parameters=[configured_params, param_filename, param_list_params],
+        arguments=['--ros-args', '--log-level', logger],
         output='screen')
 
     # Create the launch description and populate
     ld = launch.LaunchDescription()
-
+    ld.add_action(log_level)
     ld.add_action(cloud_trans_server)
 
 

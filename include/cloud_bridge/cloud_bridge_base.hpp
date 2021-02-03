@@ -51,6 +51,11 @@ protected:
   int m_iReqPort;
   int m_iRepPort;
 
+  int m_iHostSubPort;
+  int m_iHostPubPort;
+  int m_iHostReqPort;
+  int m_iHostRepPort;
+
   void* m_pZmqCtx;
   void* m_pManageSocket;
   void* m_pSubSocket;
