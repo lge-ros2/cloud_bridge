@@ -1,6 +1,6 @@
 # Dockerfile written by SW 20210120
 
-FROM ros:dashing-ros-base
+FROM ros:foxy-ros-base
 
 SHELL ["/bin/bash", "-c"]
 
@@ -9,7 +9,7 @@ ENV HOSTNAME cloud_bridge
 RUN sudo apt-get update -y && sudo apt-get install -y libzmq3-dev
 
 RUN mkdir /root/src
-RUN git clone -b dashing https://github.com/lge-ros2/cloud_bridge /root/src/cloud_bridge/
+RUN git clone -b foxy https://github.com/lge-ros2/cloud_bridge /root/src/cloud_bridge/
 WORKDIR /root/src
 
 RUN apt update -y && apt upgrade -y && rosdep update 
