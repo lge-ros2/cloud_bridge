@@ -10,6 +10,8 @@ RUN sudo apt-get update -y && sudo apt-get install -y libzmq3-dev
 
 RUN mkdir /root/src
 RUN git clone -b dashing https://github.com/lge-ros2/cloud_bridge /root/src/cloud_bridge/
+WORKDIR /root/src/cloud_bridge
+RUN git pull 
 WORKDIR /root/src
 
 RUN apt update -y && apt upgrade -y && rosdep update 
