@@ -32,7 +32,7 @@ def generate_launch_description():
     param_filename = os.path.join(config_dir, 'params.yaml')
     
     # Create our own temporary YAML files that include substitutions
-    rewritten_list = ['manage_port', 'sub_port', 'pub_port', 'req_port', 'rep_port']
+    rewritten_list = ['manage_port', 'sub_port', 'pub_port', 'req_port', 'rep_port', 'host_pub_port', 'host_sub_port', 'host_req_port', 'host_rep_port']
     configured_params = get_configured_params(config_filename, rewritten_list)
 
     # Get namespace in argument
