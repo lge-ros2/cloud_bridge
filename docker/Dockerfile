@@ -10,6 +10,8 @@ RUN sudo apt-get update -y && sudo apt-get install -y libzmq3-dev
 
 RUN mkdir /root/src
 RUN git clone -b dashing https://github.com/lge-ros2/cloud_bridge /root/src/cloud_bridge/
+WORKDIR /root/src/cloud_bridge
+RUN git pull 
 WORKDIR /root/src
 
 RUN apt update -y && apt upgrade -y && rosdep update 
@@ -23,12 +25,12 @@ ARG cloud_ip
 
 ENV BRIDGE_SERVER=TRUE
 ENV cloud_ip=$cloud_ip
-ENV manage_port=25565
+ENV manage_port=26565
 ENV ROS_DOMAIN_ID=0
 ENV robot_name=cloi
 
-STOPSIGNAL -9
 STOPSIGNAL SIGINT
 STOPSIGNAL SIGSTOP
 
+RUN chmod +x /_entrypoint.sh
 ENTRYPOINT ["/_entrypoint.sh"]
