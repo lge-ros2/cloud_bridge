@@ -1,14 +1,14 @@
 /**:
   ros__parameters:
-    manage_port: 25565
-    sub_port: 25566
-    pub_port: 25567
-    req_port: 25568
-    rep_port: 25569
-    host_sub_port: 25576
-    host_pub_port: 25577
-    host_req_port: 25578
-    host_rep_port: 25579
+    manage_port: 26565
+    sub_port: 26566
+    pub_port: 26567
+    req_port: 26568
+    rep_port: 26569
+    host_sub_port: 26566
+    host_pub_port: 26567
+    host_req_port: 26568
+    host_rep_port: 26569
     sub_list:
     - cmd_vel
     - plan
@@ -17,8 +17,8 @@
     - bt_elev_feedback
     - bt_elev_result
     - nav2_status
-    # tf_list:
-    # - map_odom
+    tf_list:
+    - map_odom
     # srv_server_list:
     # - add_two_ints
     # srv_client_list:

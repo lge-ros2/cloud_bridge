@@ -132,4 +132,76 @@
     demo_node_talker:
       topic: "/chatter"
       msg: "std_msgs/msg/String"
-      qos: "system_default"      
+      qos: "system_default"
+
+    core_registerRobot:
+      service: "/core_registerRobot"
+      srv: "ebme_interfaces/srv/RegisterInfo"
+
+    core_sendActionInfo:
+      service: "/core_sendActionInfo"
+      srv: "ebme_interfaces/srv/ActionInfo"
+
+    core_sendBatteryInfo:
+      service: "/core_sendBatteryInfo"
+      srv: "ebme_interfaces/srv/BatteryInfo"
+
+    core_sendDeviceState:
+      service: "/core_sendDeviceState"
+      srv: "ebme_interfaces/srv/Device"
+
+    core_sendErrorInfo:
+      service: "/core_sendErrorInfo" 
+      srv: "ebme_interfaces/srv/ErrorInfo"
+
+    core_sendExpendableInfo:
+      service: "/core_sendExpendableInfo"
+      srv: "ebme_interfaces/srv/ExpendableInfo"
+
+    core_sendLocationInfo:
+      service: "/core_sendLocationInfo"
+      srv: "ebme_interfaces/srv/LocationInfo"
+
+    core_sendMessage:
+      service: "/core_sendMessage"
+      srv: "ebme_interfaces/srv/Message"
+
+    core_sendModeInfo:
+      service: "/core_sendModeInfo"
+      srv: "ebme_interfaces/srv/ModeInfo"
+
+    core_sendPushMessage:
+      service: "/core_sendPushMessage"
+      srv: "ebme_interfaces/srv/PushMessage"
+
+    core_sendRobotExpendableListInfo:
+      service: "/core_sendRobotExpendableListInfo"
+      srv: "ebme_interfaces/srv/ExpendableInfo"
+
+    core_sendRobotMapListInfo:
+      service: "/core_sendRobotMapListInfo"
+      srv: "ebme_interfaces/srv/MapInfo"
+
+    core_sendRobotMovePathListInfo:
+      service: "/core_sendRobotMovePathListInfo"
+      srv: "ebme_interfaces/srv/MovePathInfo"
+
+    core_sendRobotPoiListInfo:
+      service: "/core_sendRobotPoiListInfo"
+      srv: "ebme_interfaces/srv/PoiInfo"
+
+    core_sendRobotResourceListInfo:
+      service: "/core_sendRobotResourceListInfo"
+      srv: "ebme_interfaces/srv/ResourceInfo"
+
+    core_sendRobotSensorListInfo:
+      service: "/core_sendRobotSensorListInfo"
+      srv: "ebme_interfaces/srv/SensorInfo"
+
+    core_sendSensorInfo:
+      service: "/core_sendSensorInfo"
+      srv: "ebme_interfaces/srv/SensorInfo"
+
+    core_unregisterRobot:
+      service: "/core_unregisterRobot"
+      srv: "ebme_interfaces/srv/RegisterInfo"

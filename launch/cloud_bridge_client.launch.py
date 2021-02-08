@@ -29,12 +29,15 @@ def generate_launch_description():
     # Get the launch directory
     config_dir = os.path.join(get_package_share_directory("cloud_bridge"), 'config')
 
+
+    params_file = LaunchConfiguration('params_file')
+
     # Get config filename
     config_filename = os.path.join(config_dir, 'client.yaml')
     param_filename = os.path.join(config_dir, 'params.yaml')
     
     # Create our own temporary YAML files that include substitutions
-    rewritten_list = ['cloud_ip', 'manage_port']
+    rewritten_list = ['cloud_ip', 'manage_port', 'sub_clock']
     configured_params = get_configured_params(config_filename, rewritten_list)
 
     param_list_params = get_param_list_params(param_filename)

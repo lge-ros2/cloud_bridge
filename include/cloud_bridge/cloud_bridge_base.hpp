@@ -88,5 +88,7 @@ private:
   std::vector<std::shared_ptr<tf2_ros::TransformListener>> m_vectorTfListener;
   std::vector<std::shared_ptr<tf2_ros::Buffer>> m_vectorTfBuffer;
 
+  bool sub_clock_;
+
 };
 #endif // _CLOUD_BRIDGE_BRIDGE_H_
