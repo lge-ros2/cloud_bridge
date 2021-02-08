@@ -1,7 +1,8 @@
 /**:
   ros__parameters:
     cloud_ip: "127.0.0.1"
-    manage_port: 25565
+    manage_port: 26565
+    sub_clock: true
     sub_list:
     - scan
     - tf_static
@@ -19,11 +20,6 @@
     - odom_basefootprint
     srv_server_list:
     - load_map
+    - core_GetDeviceId
     srv_client_list:
     - add_two_ints
-    - call_elevator
-    - get_called_elevator
-    - get_elevator_information
-    - is_door_opened
-    - request_door_open
-    - select_elevator_floor

@@ -80,6 +80,9 @@ void CloudBridgeBase::initBridgeParams() {
   std::vector<string> deault_tf_list;
   m_vectorTfLookup = declare_parameter("tf_list", deault_tf_list);    
 
+  bool default_sub_clock = true;
+  sub_clock_ = declare_parameter("sub_clock", default_sub_clock);
+
   std::map<std::string, std::string> qos_map;
   for(unsigned int vi=0; vi<m_vectorParams.size(); vi++) {
     std::string source = m_vectorParams[vi];
@@ -106,7 +109,11 @@ void CloudBridgeBase::initBridgeParams() {
     qos = declare_parameter(source + "." + "qos", "");
     DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
-      bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+      if(!sub_clock_ && topic.compare("/clock") == 0) {
+        ERROR("  did not add clock by sub_clock parameter");
+      } else {
+        bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+      }
     }
     undeclare_parameter(source + "." + "topic");
     undeclare_parameter(source + "." + "msg");
