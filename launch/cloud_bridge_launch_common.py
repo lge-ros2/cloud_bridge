@@ -148,11 +148,28 @@ def parse_launch_arguments(launch_arguments: List[Text]) -> List[Tuple[Text, Tex
             parsed_launch_arguments[name] = value  # last one wins is intentional
     return parsed_launch_arguments
 
+def get_env_values_dict(rewritten_list):
+    result_env_dict = {}
+    for key in rewritten_list:
+        if key in os.environ.keys():
+            env_value = os.environ[key]
+            if env_value != None:
+                result_env_dict[key] = env_value
+        if key.upper() in os.environ.keys():
+            env_value = os.environ[key.upper()]
+            if env_value != None:
+                result_env_dict[key] = env_value
+    return result_env_dict
+
+
 def get_configured_params(config_filename, rewritten_list):
     parsed_args_dict = parse_launch_arguments(sys.argv)
+    env_dict = get_env_values_dict(rewritten_list)
     param_substitutions = {}
 
     for param_name in rewritten_list:
+        if param_name in env_dict.keys():
+            param_substitutions[param_name] = env_dict[param_name]
         if param_name in parsed_args_dict.keys():
             param_substitutions[param_name] = parsed_args_dict[param_name]
 
