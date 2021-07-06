@@ -47,6 +47,7 @@ set(CPPS
   src/message_types.cpp
 )
 
+
 include_directories(include)
 
 set(BRIDGE_CLIENT_NAME "cloud_bridge_client")

@@ -21,8 +21,8 @@
 #include <mutex>
 #include <unordered_map>
 
-#include <rosidl_generator_c/message_type_support_struct.h>
-#include <rosidl_generator_c/service_type_support_struct.h>
+#include <rosidl_runtime_c/message_type_support_struct.h>
+#include <rosidl_runtime_c/service_type_support_struct.h>
 
 struct MessageType
 {

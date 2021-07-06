@@ -26,7 +26,6 @@
 #include <queue>
 #include <functional>
 #include <unordered_map>
-#include <unordered_set>
 
 #include <rcl/rcl.h>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -68,7 +67,7 @@ private:
     std::mutex service_mutex;
     std::queue<std::function<void()>> add_service_actions;
 
-    volatile bool running;
+    bool running;
     std::thread thread;
     std::thread service_thread;
     

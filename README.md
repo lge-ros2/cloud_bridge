@@ -1,18 +1,18 @@
-# cloud_bridge (dashing version)
+# cloud_bridge (foxy version)
 
 ROS2 message bridge between networks using zmq library
 
-## rosdep install 
+## rosdep install
 in workspace home
 ```shell
-rosdep install -y -r -q --from-paths src --ignore-src --rosdistro dashing
+rosdep install -y -r -q --from-paths src --ignore-src --rosdistro foxy
 ```
 ## Build
 
 Please setup ROS2 environment first!
 
 ```shell
-source /opt/ros/dashing/setup.bash
+source /opt/ros/foxy/setup.bash
 colcon build --packages-up-to cloud_bridge
 ```
 
@@ -28,6 +28,7 @@ config/param.yaml
   scan:
     topic: "scan"
     msg: "sensor_msgs/msg/LaserScan"
+    qos: "sensor_data"
 ```
 #### tf
 ```shell
@@ -47,11 +48,6 @@ config/server.yaml
 ```shell
 ros2 launch cloud_bridge cloud_bridge_server.launch.py
 ```
-#### run server with commandline param
-
-```shell
-ros2 launch cloud_bridge cloud_bridge_server.launch.py manage_port:=25565 sub_port:=25567 pub_port:=25568
-```
 ### client
 set up server ip and manage port for server connect.
 set up ros2 datas refer to param.yaml
@@ -63,11 +59,6 @@ config/client.yaml
 
 ```shell
 ros2 launch cloud_bridge cloud_bridge_client.launch.py
-```
-#### run client with commandline param
-
-```shell
-ros2 launch cloud_bridge cloud_bridge_client.launch.py cloud_ip:=127.0.0.1 manage_port:=25565
 ```
 ## Version info
 

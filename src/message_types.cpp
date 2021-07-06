@@ -18,9 +18,10 @@
 
 #include <cassert>
 #include <cstring>
+#include <iostream>
 
-#include <rosidl_generator_c/string_functions.h>
-#include <rosidl_generator_c/primitives_sequence_functions.h>
+#include <rosidl_runtime_c/string_functions.h>
+#include <rosidl_runtime_c/primitives_sequence_functions.h>
 
 #include <rosidl_typesupport_introspection_c/field_types.h>
 #include <rosidl_typesupport_introspection_c/message_introspection.h>
@@ -41,7 +42,7 @@ MessageTypes::~MessageTypes()
 
 const rosidl_service_type_support_t* MessageTypes::get_srv_type_support(const std::string& type)
 {
-    DEBUG("Searching for " << type << " type");
+    DEBUG("Searching for srv " << type << " type");
     size_t split = type.find('/');
     if (split == std::string::npos)
     {
@@ -119,10 +120,10 @@ const MessageType* MessageTypes::get(const std::string& type, const std::string&
     void* type_support_symbol = getsym(type_support, type_support_symbol_name);
     if (!type_support_symbol)
     {
-        ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type << " type");
+        ERROR("Cannot get " << type_support_symbol_name << " symbol in type_support library for " << type+"_"+category);
         return NULL;
     }
-    auto get_type_support_handle = (const rosidl_message_type_support_t* (*)(void))type_support_symbol;
+    auto get_type_support_hande = (const rosidl_message_type_support_t* (*)(void))type_support_symbol;
     // }
 
     // introspection
@@ -136,10 +137,10 @@ const MessageType* MessageTypes::get(const std::string& type, const std::string&
     void* introspection_symbol = getsym(introspection, introspection_symbol_name);
     if (!introspection_symbol)
     {
-        ERROR("Cannot get " << introspection_symbol_name << " symbol in introspection library for " << type << " type");
+        ERROR("Cannot get " << introspection_symbol_name << " symbol in introspection library for " << type+"_"+category);
         return NULL;
     }
-    auto get_introspection_handle = (const rosidl_message_type_support_t* (*)(void))introspection_symbol;
+    auto get_introspection_hande = (const rosidl_message_type_support_t* (*)(void))introspection_symbol;
     // }
 
     // generator
@@ -153,23 +154,23 @@ const MessageType* MessageTypes::get(const std::string& type, const std::string&
     void* init_symbol = getsym(generator, init_name);
     if (!init_symbol)
     {
-        ERROR("Cannot get " << init_name << " symbol in generator library for " << type << " type");
+        ERROR("Cannot get " << init_name << " symbol in generator library for " << type+"_"+category);
         return NULL;
     }
     std::string fini_name = package + symbol_identifier + "__fini";
     void* fini_symbol = getsym(generator, fini_name);
     if (!fini_symbol)
     {
-        ERROR("Cannot get " << fini_name << " symbol in generator library for " << type << " type");
+        ERROR("Cannot get " << fini_name << " symbol in generator library for " << type+"_"+category);
         return NULL;
     }
     // }
     
-    DEBUG("Loaded type support for type: " << type << "_" << category);
+    DEBUG("Loaded type support for " << type+"_"+category);
 
     MessageType mtype;
-    mtype.type_support = get_type_support_handle();
-    mtype.introspection = get_introspection_handle();
+    mtype.type_support = get_type_support_hande();
+    mtype.introspection = get_introspection_hande();
     mtype.size = ((const rosidl_typesupport_introspection_c__MessageMembers*)mtype.introspection->data)->size_of_;
     mtype.init = (bool (*)(void*))init_symbol;
     mtype.fini = (void (*)(void*))fini_symbol;
@@ -232,7 +233,7 @@ void* MessageTypes::getsym(void* lib, const std::string& name)
     uint32_t length;                                                             \
     UNS_SIMPLE(uint32_t, &length);                                               \
     UNS_CHECK_SIZE(length);                                                      \
-    if (!rosidl_generator_c__String__assignn(str, (char*)&data[offset], length)) \
+    if (!rosidl_runtime_c__String__assignn(str, (char*)&data[offset], length)) \
     {                                                                            \
         ERROR("Failed to assign string for " << member->name_);                  \
         return false;                                                            \
@@ -253,8 +254,8 @@ void* MessageTypes::getsym(void* lib, const std::string& name)
         UNS_CHECK_SIZE(byte_count);                                                                                   \
         if (member->array_size_ == 0)                                                                                 \
         {                                                                                                             \
-            auto arr = (rosidl_generator_c__##idtype##__Sequence*)ptr;                                                \
-            if (!rosidl_generator_c__##idtype##__Sequence__init(arr, count))                                          \
+            auto arr = (rosidl_runtime_c__##idtype##__Sequence*)ptr;                                                \
+            if (!rosidl_runtime_c__##idtype##__Sequence__init(arr, count))                                          \
             {                                                                                                         \
                 ERROR("Failed to allocate primitive array for " << member->name_ << " for " << count << " elements"); \
                 return false;                                                                                         \
@@ -286,7 +287,6 @@ struct Reader
     bool read(void* msg, const rosidl_message_type_support_t* type)
     {
         auto info = (const rosidl_typesupport_introspection_c__MessageMembers*)type->data;
-
         for (uint32_t i=0; i<info->member_count_; i++)
         {
             auto member = info->members_ + i;
@@ -322,12 +322,12 @@ struct Reader
 
                 case rosidl_typesupport_introspection_c__ROS_TYPE_STRING:
                 {
-                    rosidl_generator_c__String* strings;
+                    rosidl_runtime_c__String* strings;
                     if (member->array_size_ == 0)
                     {
                         // dynamic size array
-                        auto stringseq = (rosidl_generator_c__String__Sequence*)ptr;
-                        if (!rosidl_generator_c__String__Sequence__init(stringseq, count))
+                        auto stringseq = (rosidl_runtime_c__String__Sequence*)ptr;
+                        if (!rosidl_runtime_c__String__Sequence__init(stringseq, count))
                         {
                             ERROR("Failed to allocate string array for " << member->name_ << " for " << count << " elements");
                             return false;
@@ -336,7 +336,7 @@ struct Reader
                     }
                     else // constant size array
                     {
-                        strings = (rosidl_generator_c__String*)ptr;
+                        strings = (rosidl_runtime_c__String*)ptr;
                     }
 
                     for (uint32_t i=0; i<count; i++)
@@ -402,10 +402,17 @@ struct Reader
                 UNS_SIMPLE_CASE(INT32,   int32_t,  ptr);
                 UNS_SIMPLE_CASE(UINT64,  uint64_t, ptr);
                 UNS_SIMPLE_CASE(INT64,   int64_t,  ptr);
+                // case rosidl_typesupport_introspection_c__ROS_TYPE_INT64: 
+                // {
+                //     UNS_CHECK_SIZE(sizeof(int64_t));
+                //     *(int64_t*)ptr = *(int64_t*)&data[offset];
+                //     offset += sizeof(int64_t);
+                //     break;                                              
+                // }                
 
                 case rosidl_typesupport_introspection_c__ROS_TYPE_STRING:
                 {
-                    auto str = (rosidl_generator_c__String*)ptr;
+                    auto str = (rosidl_runtime_c__String*)ptr;
                     UNS_STRING(str);
                     break;
                 }
@@ -441,9 +448,8 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
     bool ok = reader.read(msg, type);
     if (reader.offset != reader.size)
     {
-        // NOTE: if you see this message, verify that your C# structure has correct fields!
         // Compare with .msg file, including other referenced messages - make sure all the types match exactly
-        LOG("Did not fully use all data for unserialization, offset=" << reader.offset << ", size=" << reader.size);
+        ERROR("Did not fully use all data for unserialization, offset=" << reader.offset << ", size=" << reader.size);
     }
     return ok;
 }
@@ -458,7 +464,7 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
 
 #define SER_STRING(ptr)                                         \
     {                                                           \
-        auto str = (rosidl_generator_c__String*)ptr;            \
+        auto str = (rosidl_runtime_c__String*)ptr;              \
         uint32_t length = (uint32_t)str->size;                  \
         SER_SIMPLE(uint32_t, &length);                          \
         data.insert(data.end(), str->data, str->data + length); \
@@ -478,7 +484,7 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
         void* arrdata;                                                              \
         if (member->array_size_ == 0)                                               \
         {                                                                           \
-            auto arr = (rosidl_generator_c__##idtype##__Sequence*)ptr;              \
+            auto arr = (rosidl_runtime_c__##idtype##__Sequence*)ptr;                \
             arrcount = (uint32_t)arr->size;                                         \
             arrdata = arr->data;                                                    \
         }                                                                           \
@@ -496,11 +502,9 @@ bool Unserialize(void* msg, const rosidl_message_type_support_t* type, const std
 void Serialize(void* msg, const rosidl_message_type_support_t* type, std::vector<uint8_t>& data)
 {
     auto info = (const rosidl_typesupport_introspection_c__MessageMembers*)type->data;
-
     for (uint32_t i=0; i<info->member_count_; i++)
     {
         auto member = info->members_ + i;
-
         void* ptr = (uint8_t*)msg + member->offset_;
         if (member->is_array_)
         {
@@ -520,18 +524,18 @@ void Serialize(void* msg, const rosidl_message_type_support_t* type, std::vector
 
             case rosidl_typesupport_introspection_c__ROS_TYPE_STRING:
             {
-                const rosidl_generator_c__String* strings;
+                const rosidl_runtime_c__String* strings;
                 uint32_t count;
                 if (member->array_size_ == 0)
                 {
                     // dynamic size array
-                    auto stringseq = (rosidl_generator_c__String__Sequence*)ptr;
+                    auto stringseq = (rosidl_runtime_c__String__Sequence*)ptr;
                     strings = stringseq->data;
                     count = (uint32_t)stringseq->size;
                 }
                 else // constant size array
                 {
-                    strings = (rosidl_generator_c__String*)ptr;
+                    strings = (rosidl_runtime_c__String*)ptr;
                     count = (uint32_t)member->array_size_;
                 }
                 SER_SIMPLE(uint32_t, &count);

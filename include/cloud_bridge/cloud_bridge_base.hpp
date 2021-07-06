@@ -51,6 +51,11 @@ protected:
   int m_iReqPort;
   int m_iRepPort;
 
+  int m_iHostSubPort;
+  int m_iHostPubPort;
+  int m_iHostReqPort;
+  int m_iHostRepPort;
+
   void* m_pZmqCtx;
   void* m_pManageSocket;
   void* m_pSubSocket;
@@ -82,6 +87,8 @@ private:
   std::vector<std::thread> m_vectorTfThread;
   std::vector<std::shared_ptr<tf2_ros::TransformListener>> m_vectorTfListener;
   std::vector<std::shared_ptr<tf2_ros::Buffer>> m_vectorTfBuffer;
+
+  bool sub_clock_;
 
 };
 #endif // _CLOUD_BRIDGE_BRIDGE_H_

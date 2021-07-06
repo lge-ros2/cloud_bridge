@@ -29,13 +29,18 @@ def generate_launch_description():
     # Get the launch directory
     config_dir = os.path.join(get_package_share_directory("cloud_bridge"), 'config')
 
+
+    params_file = LaunchConfiguration('params_file')
+
     # Get config filename
     config_filename = os.path.join(config_dir, 'client.yaml')
     param_filename = os.path.join(config_dir, 'params.yaml')
     
     # Create our own temporary YAML files that include substitutions
-    rewritten_list = ['cloud_ip', 'manage_port']
+    rewritten_list = ['cloud_ip', 'manage_port', 'sub_clock']
     configured_params = get_configured_params(config_filename, rewritten_list)
+
+    param_list_params = get_param_list_params(param_filename)
 
     # Get namespace in argument
     namespace = find_robot_name()
@@ -43,23 +48,26 @@ def generate_launch_description():
     # Set remapping topic tuple list
     remapping_list = set_remapping_list(remap_topic_list)
 
-    # Create environment variables
-    stdout_linebuf_envvar = launch.actions.SetEnvironmentVariable(
-        'RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED', '1')
+    logger = launch.substitutions.LaunchConfiguration("log_level")
+    log_level = launch.actions.DeclareLaunchArgument(
+        "log_level",
+        default_value=["error"],
+        description="Logging level",
+    )
 
     # Create actions nodes
     cloud_trans_client_node = launch_ros.actions.Node(
         package='cloud_bridge',
-        node_executable='cloud_bridge_client',
-        node_namespace=namespace,
+        executable='cloud_bridge_client',
+        namespace=namespace,
         remappings=remapping_list,
-        parameters=[configured_params, param_filename],
+        parameters=[configured_params, param_filename, param_list_params],
+        arguments=['--ros-args', '--log-level', logger],
         output='screen')
 
     # Create the launch description and populate
     ld = launch.LaunchDescription()
-
-    ld.add_action(stdout_linebuf_envvar)
+    ld.add_action(log_level)
     ld.add_action(cloud_trans_client_node)
 
     return ld

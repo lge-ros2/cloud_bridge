@@ -8,7 +8,7 @@
     host_sub_port: 26566
     host_pub_port: 26567
     host_req_port: 26568
-    host_rep_port: 26569  
+    host_rep_port: 26569
     sub_list:
     - cmd_vel
     - plan
@@ -19,13 +19,7 @@
     - nav2_status
     tf_list:
     - map_odom
-    srv_server_list:
-    - call_elevator
-    - get_called_elevator
-    - get_elevator_information
-    - is_door_opened
-    - request_door_open
-    - select_elevator_floor
-    - add_two_ints
-    srv_client_list:
-    - load_map
+    # srv_server_list:
+    # - add_two_ints
+    # srv_client_list:
+    # - load_map
