@@ -25,7 +25,7 @@
 #include <std_msgs/msg/string.hpp>
 
 BridgeRclNode::BridgeRclNode(rcl_allocator_t *alloc, rcl_context_t *context, std::string ns)
-    : running(true), alloc(alloc), context(context), node(rcl_get_zero_initialized_node()), 
+    : running(true), alloc(alloc), context(context), node(rcl_get_zero_initialized_node()),
     wait_set_sub_(rcl_get_zero_initialized_wait_set()),
     wait_set_service_(rcl_get_zero_initialized_wait_set())
 {
@@ -233,7 +233,7 @@ void BridgeRclNode::spin_service_server()
                 ERROR("rcl_wait_set_add_service failed: " << rc);
             }
         }
-        
+
         rc = rcl_wait(&wait_set_service_, RCL_MS_TO_NS(timeout));
         if (rc == RCL_RET_TIMEOUT)
         {
@@ -258,8 +258,8 @@ void BridgeRclNode::spin_service_server()
 
 rmw_qos_profile_t BridgeRclNode::parseQosString(std::string qos_string)
 {
-  rmw_qos_profile_t qos = rmw_qos_profile_default;
-  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  rmw_qos_profile_t qos;
+
   if(qos_string == "sensor_data") {
     qos = rmw_qos_profile_sensor_data;
   } else if(qos_string == "parameters") {
@@ -270,6 +270,12 @@ rmw_qos_profile_t BridgeRclNode::parseQosString(std::string qos_string)
     qos = rmw_qos_profile_system_default;
   } else if(qos_string == "services_default") {
     qos = rmw_qos_profile_services_default;
+  } else if(qos_string == "profile_default_transient_local") {
+    qos = rmw_qos_profile_default;
+    qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  }
+  else {
+    qos = rmw_qos_profile_default;
   }
 
   return qos;
@@ -384,7 +390,7 @@ void BridgeRclNode::add_service_server(const std::string& topic, const std::stri
 
         rcl_service_options_t service_options = rcl_service_get_default_options();
 
-        rcl_ret_t rc = rcl_service_init(&new_service_server->rcl_service, &node, 
+        rcl_ret_t rc = rcl_service_init(&new_service_server->rcl_service, &node,
             srv_type_support, topic.c_str(), &service_options);
         if (rc != RCL_RET_OK)
         {
@@ -420,7 +426,7 @@ void BridgeRclNode::add_service_client(const std::string& topic, const std::stri
     }
     rcl_client_t rcl_client = rcl_get_zero_initialized_client();
     rcl_client_options_t client_options = rcl_client_get_default_options();
-    rcl_ret_t rc = rcl_client_init(&rcl_client, &node, 
+    rcl_ret_t rc = rcl_client_init(&rcl_client, &node,
         srv_type_support, topic.c_str(), &client_options);
     if (rc != RCL_RET_OK)
     {
@@ -564,7 +570,7 @@ void BridgeRclNode::handle_message(Subscriber *sub)
 
                 DEBUG("Serializing message for " << sub->topic << " topic");
                 Serialize(msg, sub->type->introspection, data);
-            
+
                 std::string target_topic = sub->topic;
                 DEBUG("BridgeRclNode zmq_transport->send_publish topic: " << target_topic);
                 sub->zmq_transport->send_publish(target_topic, sub->type->type_string, data);
@@ -593,7 +599,7 @@ void BridgeRclNode::handle_message(Subscriber *sub)
     }
 }
 
-void BridgeRclNode::service(const std::string& topic, 
+void BridgeRclNode::service(const std::string& topic,
     const std::vector<uint8_t>& req_data, std::vector<uint8_t>& res_data)
 {
     auto it = service_clients.find(topic);
@@ -602,7 +608,7 @@ void BridgeRclNode::service(const std::string& topic,
         ERROR("No service client registered on topic " << topic << ", ignorning message");
         return;
     }
-    
+
     const MessageType *type_req = it->second.type_req;
     const MessageType *type_res = it->second.type_res;
     rcl_client_t *rcl_client = &it->second.rcl_client;
@@ -665,7 +671,7 @@ void BridgeRclNode::handle_service(ServiceServer *activate_server)
         if (activate_server->type_req->init(req_msg))
         {
             DEBUG("rcl_take_request " << activate_server->topic << " service");
-            rmw_request_id_t request_id; 
+            rmw_request_id_t request_id;
             rc = rcl_take_request(&activate_server->rcl_service, &request_id, req_msg);
             if (rc == RCL_RET_OK)
             {
