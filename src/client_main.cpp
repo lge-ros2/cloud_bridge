@@ -18,10 +18,7 @@
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    rclcpp::sleep_for(3000ms);
-
     auto bridge = std::make_shared<CloudBridgeClient>("cloud_bridge_client");
-
     rclcpp::spin(bridge);
     rclcpp::shutdown();
 }
