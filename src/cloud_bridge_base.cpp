@@ -92,14 +92,24 @@ void CloudBridgeBase::initBridgeParams() {
   for(unsigned int vi=0; vi<m_vectorParams.size(); vi++) {
     std::string source = m_vectorParams[vi];
     std::string topic;
+    std::string msg;
     std::string qos;
+    std::string service;
+    std::string srv;
+    std::string base_frame;
+    std::string child_frame;
     topic = declare_parameter(source + "." + "topic", "");
+    msg = declare_parameter(source + "." + "msg", "");
     qos = declare_parameter(source + "." + "qos", "");
+    service = declare_parameter(source + "." + "service", "");
+    srv = declare_parameter(source + "." + "srv", "");
+    base_frame = declare_parameter(source + "." + "base_frame", "");
+    child_frame = declare_parameter(source + "." + "child_frame", "");
     if(topic.compare("") != 0 && qos.compare("") != 0) {
       qos_map.insert(make_pair(topic, qos));
     }
-    undeclare_parameter(source + "." + "topic");
-    undeclare_parameter(source + "." + "qos");
+    // undeclare_parameter(source + "." + "topic");
+    // undeclare_parameter(source + "." + "qos");
   }
   zmq_transport_->set_qos_map(qos_map);
   
@@ -109,9 +119,9 @@ void CloudBridgeBase::initBridgeParams() {
     std::string topic;
     std::string msg;
     std::string qos;
-    topic = declare_parameter(source + "." + "topic", "");
-    msg = declare_parameter(source + "." + "msg", "");
-    qos = declare_parameter(source + "." + "qos", "");
+    get_parameter(source + "." + "topic", topic);
+    get_parameter(source + "." + "msg", msg);
+    get_parameter(source + "." + "qos", qos);
     DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
       if(!sub_clock_ && topic.compare("/clock") == 0) {
@@ -120,9 +130,6 @@ void CloudBridgeBase::initBridgeParams() {
         bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
       }
     }
-    undeclare_parameter(source + "." + "topic");
-    undeclare_parameter(source + "." + "msg");
-    undeclare_parameter(source + "." + "qos");
   }
 
   for(unsigned int vi=0; vi<m_vectorPubTopic.size(); vi++) {
@@ -131,16 +138,13 @@ void CloudBridgeBase::initBridgeParams() {
     std::string topic;
     std::string msg;
     std::string qos;
-    topic = declare_parameter(source + "." + "topic", "");
-    msg = declare_parameter(source + "." + "msg", "");
-    qos = declare_parameter(source + "." + "qos", "");
+    get_parameter(source + "." + "topic", topic);
+    get_parameter(source + "." + "msg", msg);
+    get_parameter(source + "." + "qos", qos);
     DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
       bridge_rcl_node_->add_publisher(topic, msg, zmq_transport_, qos);
     }
-    undeclare_parameter(source + "." + "topic");
-    undeclare_parameter(source + "." + "msg");
-    undeclare_parameter(source + "." + "qos");
   }
 
   for(unsigned int vi=0; vi<m_vectorSrvServer.size(); vi++) {
@@ -148,14 +152,12 @@ void CloudBridgeBase::initBridgeParams() {
     LOG("CloudBridgeBase add srv server: " << source);
     std::string service;
     std::string srv;
-    service = declare_parameter(source + "." + "service", "");
-    srv = declare_parameter(source + "." + "srv", "");
+    get_parameter(source + "." + "service", service);
+    get_parameter(source + "." + "srv", srv);
     DEBUG("  - service: " << service << ", type: " << srv);
     if(service.compare("") != 0 && srv.compare("") != 0) {
       bridge_rcl_node_->add_service_server(service, srv, zmq_transport_);
     }
-    undeclare_parameter(source + "." + "service");
-    undeclare_parameter(source + "." + "srv");
   }
 
   for(unsigned int vi=0; vi<m_vectorSrvClient.size(); vi++) {
@@ -163,22 +165,20 @@ void CloudBridgeBase::initBridgeParams() {
     LOG("CloudBridgeBase add srv client: " << source);
     std::string service;
     std::string srv;
-    service = declare_parameter(source + "." + "service", "");
-    srv = declare_parameter(source + "." + "srv", "");
+    get_parameter(source + "." + "service", service);
+    get_parameter(source + "." + "srv", srv);
     DEBUG("  - service: " << service << ", type: " << srv);
     if(service.compare("") != 0 && srv.compare("") != 0) {
       bridge_rcl_node_->add_service_client(service, srv, zmq_transport_);
     }
-    undeclare_parameter(source + "." + "service");
-    undeclare_parameter(source + "." + "srv");
   }
 
   for(unsigned int vi=0; vi<m_vectorTfLookup.size(); vi++) {
     std::string source = m_vectorTfLookup[vi];
     std::string baseFrame;
     std::string childFrame;
-    baseFrame = declare_parameter(source + "." + "base_frame", "");
-    childFrame = declare_parameter(source + "." + "child_frame", "");
+    get_parameter(source + "." + "base_frame", baseFrame);
+    get_parameter(source + "." + "child_frame", childFrame);
 
     LOG("CloudBridgeBase TransformListen "<< baseFrame << " to " << childFrame);
     if(baseFrame.compare("") != 0 && childFrame.compare("") != 0) {
@@ -212,8 +212,8 @@ void CloudBridgeBase::initBridgeParams() {
       m_vectorTfThread.push_back(std::move(tfThread2));
       
     }
-    undeclare_parameter(source + "." + "base_frame");
-    undeclare_parameter(source + "." + "child_frame");
+    // undeclare_parameter(source + "." + "base_frame");
+    // undeclare_parameter(source + "." + "child_frame");
   }
 }
 void CloudBridgeBase::Disconnect()

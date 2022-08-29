@@ -20,6 +20,7 @@
 #include <tf2_msgs/msg/tf_message.hpp>
 
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 #include "cloud_bridge/bridge_rcl_node.hpp"
 #include "cloud_bridge/zmq_transport.hpp"
 #include "cloud_bridge/logging.hpp"
