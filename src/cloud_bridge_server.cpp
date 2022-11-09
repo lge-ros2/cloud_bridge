@@ -65,6 +65,36 @@ bool CloudBridgeServer::Setup()
   m_pReqSocket = zmq_socket(m_pZmqCtx, ZMQ_REQ);
   m_pRepSocket = zmq_socket(m_pZmqCtx, ZMQ_REP);
 
+  int so_keepalive=1;
+  int keepAlive = 7200;
+  int keepAliveCnt = 9;
+  int keepAliveIntvl = 75;
+
+   zmq_setsockopt(m_pManageSocket, ZMQ_TCP_KEEPALIVE, &so_keepalive, sizeof(so_keepalive));
+   zmq_setsockopt(m_pManageSocket, ZMQ_TCP_KEEPALIVE_IDLE, &keepAlive, sizeof(keepAlive));
+   zmq_setsockopt(m_pManageSocket, ZMQ_TCP_KEEPALIVE_CNT, &keepAliveCnt, sizeof(keepAliveCnt));
+   zmq_setsockopt(m_pManageSocket, ZMQ_TCP_KEEPALIVE_INTVL, &keepAliveIntvl, sizeof(keepAliveIntvl));
+
+   zmq_setsockopt(m_pPubSocket, ZMQ_TCP_KEEPALIVE, &so_keepalive, sizeof(so_keepalive));
+   zmq_setsockopt(m_pPubSocket, ZMQ_TCP_KEEPALIVE_IDLE, &keepAlive, sizeof(keepAlive));
+   zmq_setsockopt(m_pPubSocket, ZMQ_TCP_KEEPALIVE_CNT, &keepAliveCnt, sizeof(keepAliveCnt));
+   zmq_setsockopt(m_pPubSocket, ZMQ_TCP_KEEPALIVE_INTVL, &keepAliveIntvl, sizeof(keepAliveIntvl));
+
+   zmq_setsockopt(m_pSubSocket, ZMQ_TCP_KEEPALIVE, &so_keepalive, sizeof(so_keepalive));
+   zmq_setsockopt(m_pSubSocket, ZMQ_TCP_KEEPALIVE_IDLE, &keepAlive, sizeof(keepAlive));
+   zmq_setsockopt(m_pSubSocket, ZMQ_TCP_KEEPALIVE_CNT, &keepAliveCnt, sizeof(keepAliveCnt));
+   zmq_setsockopt(m_pSubSocket, ZMQ_TCP_KEEPALIVE_INTVL, &keepAliveIntvl, sizeof(keepAliveIntvl));
+
+   zmq_setsockopt(m_pReqSocket, ZMQ_TCP_KEEPALIVE, &so_keepalive, sizeof(so_keepalive));
+   zmq_setsockopt(m_pReqSocket, ZMQ_TCP_KEEPALIVE_IDLE, &keepAlive, sizeof(keepAlive));
+   zmq_setsockopt(m_pReqSocket, ZMQ_TCP_KEEPALIVE_CNT, &keepAliveCnt, sizeof(keepAliveCnt));
+   zmq_setsockopt(m_pReqSocket, ZMQ_TCP_KEEPALIVE_INTVL, &keepAliveIntvl, sizeof(keepAliveIntvl));
+
+   zmq_setsockopt(m_pRepSocket, ZMQ_TCP_KEEPALIVE, &so_keepalive, sizeof(so_keepalive));
+   zmq_setsockopt(m_pRepSocket, ZMQ_TCP_KEEPALIVE_IDLE, &keepAlive, sizeof(keepAlive));
+   zmq_setsockopt(m_pRepSocket, ZMQ_TCP_KEEPALIVE_CNT, &keepAliveCnt, sizeof(keepAliveCnt));
+   zmq_setsockopt(m_pRepSocket, ZMQ_TCP_KEEPALIVE_INTVL, &keepAliveIntvl, sizeof(keepAliveIntvl));
+
   if (m_pSubSocket == nullptr) {
     ERROR("NULL Socket for sub!!");
     return false;
