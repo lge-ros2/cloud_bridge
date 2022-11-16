@@ -1,8 +1,8 @@
 #!/bin/bash
 
 num=$(netstat -anlp | grep cloud_bridge | grep ESTABLISHED | wc -l)
-if [[ $num -eq 5 ]]; then
-  echo 0
+if [[ $num -ne 5 ]]; then
+  echo 1
 else
-  echo $num
+  echo 0
 fi  
