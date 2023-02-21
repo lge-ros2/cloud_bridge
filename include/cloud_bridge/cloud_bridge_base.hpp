@@ -78,6 +78,8 @@ private:
   rcl_allocator_t bridge_node_alloc_;
   BridgeRclNode* bridge_rcl_node_;
   
+
+  std::vector<std::string> m_vectorNamespace;
   std::vector<std::string> m_vectorSubTopic;
   std::vector<std::string> m_vectorPubTopic;
   std::vector<std::string> m_vectorParams;

@@ -66,8 +66,10 @@ void CloudBridgeBase::initBridgeParams() {
   m_vectorParams = declare_parameter("param_list", deault_param_list);
 
   // Get Parameters for topic
+  std::vector<string> deault_ns_list;
   std::vector<string> deault_sub_list;
   std::vector<string> deault_pub_list;
+  m_vectorNamespace = declare_parameter("namespace_list", deault_ns_list);
   m_vectorSubTopic = declare_parameter("sub_list", deault_sub_list);
   m_vectorPubTopic = declare_parameter("pub_list", deault_pub_list);
   // Get Parameters for service
@@ -122,12 +124,20 @@ void CloudBridgeBase::initBridgeParams() {
     get_parameter(source + "." + "topic", topic);
     get_parameter(source + "." + "msg", msg);
     get_parameter(source + "." + "qos", qos);
-    DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
       if(!sub_clock_ && topic.compare("/clock") == 0) {
         ERROR("  did not add clock by sub_clock parameter");
       } else {
-        bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+        if (m_vectorNamespace.size() > 0) {
+          for(unsigned int ni=0; vi<m_vectorNamespace.size(); ni++) {
+            topic = "/"+m_vectorNamespace[ni]+"/"+topic;
+            LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+            bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+          }
+        } else {
+          DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+            bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+        }
       }
     }
   }
