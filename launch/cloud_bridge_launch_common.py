@@ -20,6 +20,9 @@ import yaml
 import tempfile
 import launch
 
+from ament_index_python.packages import get_package_share_directory
+
+
 class DictItemReference:
     def __init__(self, dictionary, key):
         self.dictionary = dictionary
@@ -31,18 +34,17 @@ class DictItemReference:
     def setValue(self, value):
         self.dictionary[self.dictKey] = value
 
+
 class RewrittenYaml(launch.Substitution):
     """
     Substitution that modifies the given Yaml file.
     """
 
-    def __init__(self,
-        source_file: launch.SomeSubstitutionsType,
-        rewrites: Dict,
-        convert_types = False) -> None:
+    def __init__(self, source_file: launch.SomeSubstitutionsType, rewrites: Dict, convert_types=False) -> None:
         super().__init__()
 
         from launch.utilities import normalize_to_list_of_substitutions  # import here to avoid loop
+
         self.__source_file = normalize_to_list_of_substitutions(source_file)
         self.__rewrites = {}
         self.__convert_types = convert_types
@@ -56,13 +58,13 @@ class RewrittenYaml(launch.Substitution):
 
     def describe(self) -> Text:
         """Return a description of this substitution as a string."""
-        return ''
+        return ""
 
     def perform(self, context: launch.LaunchContext) -> Text:
         yaml_filename = launch.utilities.perform_substitutions(context, self.name)
-        rewritten_yaml = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        rewritten_yaml = tempfile.NamedTemporaryFile(mode="w", delete=False)
         resolved_rewrites = self.resolve_rewrites(context)
-        data = yaml.safe_load(open(yaml_filename, 'r'))
+        data = yaml.safe_load(open(yaml_filename, "r"))
         self.substitute_values(data, resolved_rewrites)
         yaml.dump(data, rewritten_yaml)
         rewritten_yaml.close()
@@ -109,44 +111,58 @@ class RewrittenYaml(launch.Substitution):
             if text_value.lower() == "false":
                 return False
 
-            #nothing else worked so fall through and return text
+            # nothing else worked so fall through and return text
         return text_value
 
+
+def get_configs():
+    parsed_args_dict = parse_launch_arguments(sys.argv)
+    config_dir = parsed_args_dict["config_dir"] if "config_dir" in parsed_args_dict else os.path.join(get_package_share_directory("cloud_bridge"), "config")
+    server_name = parsed_args_dict["server_name"] if "server_name" in parsed_args_dict else "server.yaml"
+    client_name = parsed_args_dict["client_name"] if "client_name" in parsed_args_dict else "client.yaml"
+    params_name = parsed_args_dict["params_name"] if "params_name" in parsed_args_dict else "params.yaml"
+    return config_dir, server_name, client_name, params_name
+
+
 def get_robot_name_in_env():
-    robot_name = ''
+    robot_name = ""
     # check environment param
-    if 'ROBOT_NAME' in os.environ.keys():
+    if "ROBOT_NAME" in os.environ.keys():
         # if environment param name has ROBOT_NAME
-        env_robot_name = os.environ['ROBOT_NAME']
+        env_robot_name = os.environ["ROBOT_NAME"]
         if env_robot_name != None:
-        # set namespace with ROBOT_NAME
+            # set namespace with ROBOT_NAME
             robot_name = env_robot_name
     return robot_name
 
+
 def find_robot_name():
     env_robot_name = get_robot_name_in_env()
-    robot_name = LaunchConfiguration('robot_name', default=env_robot_name)
+    robot_name = LaunchConfiguration("robot_name", default=env_robot_name)
     return robot_name
+
 
 def set_remapping_list(remap_topic_list):
     result_remapping_list = []
 
     # set topic remap list with prefix
     for remap_topic in remap_topic_list:
-        result_remapping_list.append(tuple(['/'+remap_topic, remap_topic]))
+        result_remapping_list.append(tuple(["/" + remap_topic, remap_topic]))
     return result_remapping_list
+
 
 def parse_launch_arguments(launch_arguments: List[Text]) -> List[Tuple[Text, Text]]:
     """Parse the given launch arguments from the command line, into list of tuples for launch."""
     parsed_launch_arguments = OrderedDict()  # type: ignore
     for argument in launch_arguments:
-        count = argument.count(':=')
-        if count == 0 or argument.startswith(':=') or (count == 1 and argument.endswith(':=')):
+        count = argument.count(":=")
+        if count == 0 or argument.startswith(":=") or (count == 1 and argument.endswith(":=")):
             pass
         else:
-            name, value = argument.split(':=', maxsplit=1)
+            name, value = argument.split(":=", maxsplit=1)
             parsed_launch_arguments[name] = value  # last one wins is intentional
     return parsed_launch_arguments
+
 
 def get_env_values_dict(rewritten_list):
     result_env_dict = {}
@@ -173,16 +189,15 @@ def get_configured_params(config_filename, rewritten_list):
         if param_name in parsed_args_dict.keys():
             param_substitutions[param_name] = parsed_args_dict[param_name]
 
-    return RewrittenYaml(
-        source_file=config_filename, rewrites=param_substitutions,
-        convert_types=True)
+    return RewrittenYaml(source_file=config_filename, rewrites=param_substitutions, convert_types=True)
+
 
 def get_param_list_params(param_filename):
     result = {}
     param_list = []
-    data = yaml.safe_load(open(param_filename, 'r'))
-    for key in data['/**']['ros__parameters']:
+    data = yaml.safe_load(open(param_filename, "r"))
+    for key in data["/**"]["ros__parameters"]:
         param_list.append(key)
 
-    result['param_list'] = param_list
+    result["param_list"] = param_list
     return result
