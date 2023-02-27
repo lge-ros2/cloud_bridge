@@ -128,15 +128,15 @@ void CloudBridgeBase::initBridgeParams() {
       if(!sub_clock_ && topic.compare("/clock") == 0) {
         ERROR("  did not add clock by sub_clock parameter");
       } else {
-        if (m_vectorNamespace.size() > 0) {
-          for(unsigned int ni=0; vi<m_vectorNamespace.size(); ni++) {
-            topic = "/"+m_vectorNamespace[ni]+"/"+topic;
-            LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
-            bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+        if (topic.rfind("/", 0) != 0 && m_vectorNamespace.size() > 0) {
+          for(unsigned int ni=0; ni<m_vectorNamespace.size(); ni++) {
+            string namespaced_topic = "/"+m_vectorNamespace[ni]+"/"+topic;
+            DEBUG("  - topic: " << namespaced_topic << ", type: " << msg << ", qos_string: "<< qos);
+            bridge_rcl_node_->add_subscriber(namespaced_topic, msg, zmq_transport_, qos);
           }
         } else {
           DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
-            bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
+          bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
         }
       }
     }
@@ -153,7 +153,16 @@ void CloudBridgeBase::initBridgeParams() {
     get_parameter(source + "." + "qos", qos);
     DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
     if(topic.compare("") != 0 && msg.compare("") != 0) {
-      bridge_rcl_node_->add_publisher(topic, msg, zmq_transport_, qos);
+      if (topic.rfind("/", 0) != 0 && m_vectorNamespace.size() > 0) {
+        for(unsigned int ni=0; ni<m_vectorNamespace.size(); ni++) {
+          string namespaced_topic = "/"+m_vectorNamespace[ni]+"/"+topic;
+          DEBUG("  - topic: " << namespaced_topic << ", type: " << msg << ", qos_string: "<< qos);
+          bridge_rcl_node_->add_publisher(namespaced_topic, msg, zmq_transport_, qos);
+        }
+      } else {
+        DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+        bridge_rcl_node_->add_publisher(topic, msg, zmq_transport_, qos);
+      }
     }
   }
 
@@ -166,7 +175,16 @@ void CloudBridgeBase::initBridgeParams() {
     get_parameter(source + "." + "srv", srv);
     DEBUG("  - service: " << service << ", type: " << srv);
     if(service.compare("") != 0 && srv.compare("") != 0) {
-      bridge_rcl_node_->add_service_server(service, srv, zmq_transport_);
+      if (service.rfind("/", 0) != 0 && m_vectorNamespace.size() > 0) {
+        for(unsigned int ni=0; ni<m_vectorNamespace.size(); ni++) {
+          string namespaced_service = "/"+m_vectorNamespace[ni]+"/"+service;
+          DEBUG("  - service: " << namespaced_service << ", type: " << srv);
+          bridge_rcl_node_->add_service_server(namespaced_service, srv, zmq_transport_);
+        }
+      } else {
+        DEBUG("  - service: " << service << ", srv: " << srv);
+        bridge_rcl_node_->add_service_server(service, srv, zmq_transport_);
+      }
     }
   }
 
@@ -179,7 +197,16 @@ void CloudBridgeBase::initBridgeParams() {
     get_parameter(source + "." + "srv", srv);
     DEBUG("  - service: " << service << ", type: " << srv);
     if(service.compare("") != 0 && srv.compare("") != 0) {
-      bridge_rcl_node_->add_service_client(service, srv, zmq_transport_);
+      if (service.rfind("/", 0) != 0 && m_vectorNamespace.size() > 0) {
+        for(unsigned int ni=0; ni<m_vectorNamespace.size(); ni++) {
+          string namespaced_service = "/"+m_vectorNamespace[ni]+"/"+service;
+          DEBUG("  - service: " << namespaced_service << ", type: " << srv);
+          bridge_rcl_node_->add_service_client(namespaced_service, srv, zmq_transport_);
+        }
+      } else {
+        DEBUG("  - service: " << service << ", srv: " << srv);
+        bridge_rcl_node_->add_service_client(service, srv, zmq_transport_);
+      }
     }
   }
 
