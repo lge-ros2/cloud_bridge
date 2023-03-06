@@ -21,12 +21,26 @@ CloudBridgeBase::CloudBridgeBase(string nodeName)
   : Node(nodeName, rclcpp::NodeOptions())
   , m_pZmqCtx(nullptr)
 {
-
+  // Get Robot Name
+  string default_robot_name = NONE_ROBOT_NAME;
+  m_robotName = declare_parameter("robot_name", default_robot_name);
+  if (m_robotName == "") {
+    m_robotName = NONE_ROBOT_NAME;
+    ERROR("robot_name is not set - setup none robot name");
+  } 
+  ERROR("robot_name: " << m_robotName);
+  m_namespace = get_namespace();
+  ERROR(" namespace: " << m_namespace);
 }
 
 CloudBridgeBase::~CloudBridgeBase()
 {
 
+}
+
+void CloudBridgeBase::setServerName() {
+  m_robotName = SERVER_ROBOT_NAME;
+  ERROR("robot_name: " << m_robotName);
 }
 
 uint32_t CloudBridgeBase::get32le(std::vector<uint8_t> buffer, size_t size) const
@@ -53,8 +67,11 @@ void CloudBridgeBase::initBridgeRclNode() {
       ERROR("rcl_init failed: " << rc);
       return;
   }
-  bridge_rcl_node_ = new BridgeRclNode(&bridge_node_alloc_, &bridge_node_context_, get_namespace());
-  zmq_transport_ = new ZmqTransport(*bridge_rcl_node_, 
+  bridge_rcl_node_ = new BridgeRclNode(&bridge_node_alloc_, &bridge_node_context_, m_namespace);
+  zmq_transport_ = new ZmqTransport(
+    m_namespace,
+    m_robotName,
+    *bridge_rcl_node_, 
     m_pPubSocket, m_pSubSocket,
     m_pReqSocket, m_pRepSocket);
 }
@@ -85,9 +102,9 @@ void CloudBridgeBase::initBridgeParams() {
   bool default_sub_clock = true;
   sub_clock_ = declare_parameter("sub_clock", default_sub_clock);
   if(sub_clock_) {
-    ERROR("sub_clock_ true");
+    ERROR("  sub_clock_ true");
   } else {
-    ERROR("sub_clock_ false");
+    ERROR("  sub_clock_ false");
   }
 
   std::map<std::string, std::string> qos_map;
@@ -114,6 +131,7 @@ void CloudBridgeBase::initBridgeParams() {
     // undeclare_parameter(source + "." + "qos");
   }
   zmq_transport_->set_qos_map(qos_map);
+  zmq_transport_->set_robotnames(m_vectorNamespace);
   
   for(unsigned int vi=0; vi<m_vectorSubTopic.size(); vi++) {
     std::string source = m_vectorSubTopic[vi];
@@ -131,11 +149,11 @@ void CloudBridgeBase::initBridgeParams() {
         if (topic.rfind("/", 0) != 0 && m_vectorNamespace.size() > 0) {
           for(unsigned int ni=0; ni<m_vectorNamespace.size(); ni++) {
             string namespaced_topic = "/"+m_vectorNamespace[ni]+"/"+topic;
-            DEBUG("  - topic: " << namespaced_topic << ", type: " << msg << ", qos_string: "<< qos);
+            LOG("  - topic: " << namespaced_topic << ", type: " << msg << ", qos_string: "<< qos);
             bridge_rcl_node_->add_subscriber(namespaced_topic, msg, zmq_transport_, qos);
           }
         } else {
-          DEBUG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
+          LOG("  - topic: " << topic << ", type: " << msg << ", qos_string: "<< qos);
           bridge_rcl_node_->add_subscriber(topic, msg, zmq_transport_, qos);
         }
       }

@@ -14,6 +14,7 @@ import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import DeclareLaunchArgument
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from cloud_bridge_launch_common import *
@@ -38,13 +39,20 @@ def generate_launch_description():
     param_list_params = get_param_list_params(param_filename)
 
     # Get namespace in argument
-    namespace = find_robot_name()
+    robot_name = find_robot_name()
 
     # Set remapping topic tuple list
     remapping_list = set_remapping_list(remap_topic_list)
 
+    namespace = LaunchConfiguration('namespace')
+    declare_namespace_cmd = DeclareLaunchArgument(
+        'namespace',
+        default_value='',
+        description='Top-level namespace'
+    )
+
     logger = launch.substitutions.LaunchConfiguration("log_level")
-    log_level = launch.actions.DeclareLaunchArgument(
+    declare_log_level_cmd = launch.actions.DeclareLaunchArgument(
         "log_level",
         default_value=["error"],
         description="Logging level",
@@ -56,14 +64,15 @@ def generate_launch_description():
         executable="cloud_bridge_client",
         namespace=namespace,
         remappings=remapping_list,
-        parameters=[configured_params, param_filename, param_list_params],
+        parameters=[configured_params, param_filename, param_list_params, {"robot_name": robot_name}],
         arguments=["--ros-args", "--log-level", logger],
         output="screen",
     )
 
     # Create the launch description and populate
     ld = launch.LaunchDescription()
-    ld.add_action(log_level)
+    ld.add_action(declare_namespace_cmd)
+    ld.add_action(declare_log_level_cmd)
     ld.add_action(cloud_trans_client_node)
 
     return ld

@@ -26,10 +26,16 @@
 
 class BridgeRclNode;
 
+#define NONE_ROBOT_NAME "NONE"
+#define SERVER_ROBOT_NAME "SERVER"
+
 class ZmqTransport
 {
 public:
-    ZmqTransport(BridgeRclNode& node, 
+    ZmqTransport(
+        std::string ns,
+        std::string robotName,
+        BridgeRclNode& node, 
         void* m_pPubSocket, void* m_pSubSocket,
         void* m_pReqSocket, void* m_pRepSocket);
     ~ZmqTransport();
@@ -42,6 +48,7 @@ public:
     void send_request_and_get_response(const std::string& topic,
         const std::vector<uint8_t>& req_msg, std::vector<uint8_t>& res_msg);
     void set_qos_map(std::map<std::string, std::string> map);
+    void set_robotnames(std::vector<std::string> vectorRobotname);
 
 private:
     struct TopicData
@@ -50,6 +57,10 @@ private:
         std::string type;
     };
     std::unordered_set<TopicData*> topicDatas;
+
+    std::string m_namespace;
+    std::string m_robotName;
+    std::vector<std::string> m_vectorRobotname;
 
     BridgeRclNode& rcl_node_;
     void* m_pPubSocket;
@@ -89,6 +100,7 @@ private:
 
     void check_topic_data(std::string topic, std::string type);
 
+    std::string find_robotname(std::string topic) const;
     uint32_t get32le(size_t offset) const;
     uint32_t get32le_rep(size_t offset) const;
 };
