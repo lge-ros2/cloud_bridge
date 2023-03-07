@@ -309,7 +309,7 @@ void ZmqTransport::send_publish(const std::string &topic, const std::string &typ
   }
 
   std::string send_topic = topic;
-  if (m_robotName == SERVER_ROBOT_NAME) {
+  if (m_robotName == SERVER_ROBOT_NAME && robot_name != NONE_ROBOT_NAME) {
     send_topic = topic.substr(robot_name.size()+2);
   }
   LOG("PUBLISH, robot_name: " << robot_name << ", send_topic: " << send_topic);
