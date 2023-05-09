@@ -249,11 +249,11 @@ void ZmqTransport::check_topic_data(std::string topic, std::string type)
 
   std::map<std::string, std::string>::iterator iter;
   std::string qos = "default";
-  // for(iter = qos_map.begin(); iter != qos_map.end(); iter++){
-  //   if(topic == iter->first) {
-  //     qos = iter->second;
-  //   }
-  // }
+  for(iter = qos_map.begin(); iter != qos_map.end(); iter++){
+    if(topic == iter->first) {
+      qos = iter->second;
+    }
+  }
   LOG("add_publisher topic: " << topic << ", type: " << type << ", qos_string: "<< qos);
   rcl_node_.add_publisher(topic, type, this, qos);
 }

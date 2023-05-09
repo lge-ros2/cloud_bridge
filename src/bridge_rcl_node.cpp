@@ -300,6 +300,7 @@ void BridgeRclNode::add_subscriber(const std::string &topic, const std::string &
         s->zmq_transport = zmq_transport;
 
         rcl_subscription_options_t sub_opt = rcl_subscription_get_default_options();
+        LOG("[add_sub] topic: " << topic << ", qos: " << qos);
         sub_opt.qos = parseQosString(qos);
 
         rcl_ret_t rc = rcl_subscription_init(&s->sub, &node, message_type->type_support, topic.c_str(), &sub_opt);
@@ -336,6 +337,7 @@ void BridgeRclNode::add_publisher(const std::string &topic, const std::string &t
 
     rcl_publisher_t pub = rcl_get_zero_initialized_publisher();
     rcl_publisher_options_t pub_opt = rcl_publisher_get_default_options();
+    LOG("[add_pub] topic: " << topic << ", qos: " << qos);
     pub_opt.qos = parseQosString(qos);
 
     rcl_ret_t rc = rcl_publisher_init(&pub, &node, message_type->type_support, topic.c_str(), &pub_opt);
