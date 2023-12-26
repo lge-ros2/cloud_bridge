@@ -29,7 +29,10 @@ enum
   OP_PUBLISH = 3,
 };
 
-ZmqTransport::ZmqTransport(BridgeRclNode &rcl_node, 
+ZmqTransport::ZmqTransport(
+  std::string ns,
+  std::string robotName, 
+  BridgeRclNode &rcl_node, 
   void *pubSocket, void *subSocket,
   void *reqSocket, void *repSocket)
     : rcl_node_(rcl_node),
@@ -38,6 +41,8 @@ ZmqTransport::ZmqTransport(BridgeRclNode &rcl_node,
       m_pReqSocket(reqSocket),
       m_pRepSocket(repSocket)
 {
+  m_namespace = ns;
+  m_robotName = robotName;
 }
 
 ZmqTransport::~ZmqTransport()
@@ -195,6 +200,15 @@ void ZmqTransport::handle_publish()
 
   size_t offset = 0;
 
+  uint32_t name_length = get32le(offset);
+  offset += sizeof(uint32_t);
+  if (offset + name_length > buffer.size())
+  {
+    return;
+  }
+  std::string robot_name((char *)&buffer[offset], name_length);
+
+  offset += name_length;
   uint32_t topic_length = get32le(offset);
   offset += sizeof(uint32_t);
   if (offset + topic_length > buffer.size())
@@ -222,10 +236,33 @@ void ZmqTransport::handle_publish()
   std::vector<uint8_t> message(&buffer[offset], &buffer[offset] + message_length);
   offset += message_length;
 
-  DEBUG("OP_PUBLISH, topic = " << topic);
+  if (m_robotName == SERVER_ROBOT_NAME && robot_name != NONE_ROBOT_NAME) {
+    topic = "/"+robot_name+"/"+topic;
+    bool exist_robot_name = false;
+    for (unsigned int i= 0; i <m_vectorRobotname.size(); i++) {
+      std::string target_name = m_vectorRobotname[i];
+      if (robot_name == target_name ) {
+        exist_robot_name = true;
+        break;
+      }
+    }
+    if (!exist_robot_name) {
+      m_vectorRobotname.push_back(robot_name);
+    }
 
-  check_topic_data(topic, type);
-  rcl_node_.publish(topic, message);
+  }
+  bool is_correct = true;
+  if (m_robotName != SERVER_ROBOT_NAME && robot_name != m_robotName) {
+    if (robot_name != NONE_ROBOT_NAME) {
+      LOG("robot_name is not matched current:" << m_robotName << ", received: " << robot_name);
+      is_correct = false;
+    }
+  }
+  if (is_correct) {
+    check_topic_data(topic, type);
+    LOG("OP_PUBLISH, topic = " << topic);
+    rcl_node_.publish(topic, message);
+  }
 
   buffer.erase(buffer.begin(), buffer.begin() + offset);
 }
@@ -254,7 +291,7 @@ void ZmqTransport::check_topic_data(std::string topic, std::string type)
   //     qos = iter->second;
   //   }
   // }
-  LOG("add_publisher topic: " << topic << ", type: " << type << ", qos_string: "<< qos);
+  LOG("  add_publisher topic: " << topic << ", type: " << type << ", qos_string: "<< qos);
   rcl_node_.add_publisher(topic, type, this, qos);
 }
 
@@ -265,15 +302,34 @@ void ZmqTransport::set_qos_map(std::map<std::string, std::string> map)
 
 void ZmqTransport::send_publish(const std::string &topic, const std::string &type, const std::vector<uint8_t> &msg)
 {
-  DEBUG("PUBLISH, topic = " << topic);
-  std::vector<uint8_t> data;
-  data.reserve(sizeof(uint32_t) + topic.size() + sizeof(uint32_t) + type.size() +sizeof(uint32_t) + msg.size());
 
-  data.push_back(uint8_t(topic.size() >> 0));
-  data.push_back(uint8_t(topic.size() >> 8));
-  data.push_back(uint8_t(topic.size() >> 16));
-  data.push_back(uint8_t(topic.size() >> 24));
-  data.insert(data.end(), (uint8_t *)topic.data(), (uint8_t *)topic.data() + topic.size());
+  std::string robot_name = m_robotName;
+  if (m_robotName == SERVER_ROBOT_NAME) {
+    robot_name = find_robotname(topic);
+  }
+
+  std::string send_topic = topic;
+  if (m_robotName == SERVER_ROBOT_NAME && robot_name != NONE_ROBOT_NAME) {
+    send_topic = topic.substr(robot_name.size()+2);
+  }
+  LOG("PUBLISH, robot_name: " << robot_name << ", send_topic: " << send_topic);
+  std::vector<uint8_t> data;
+  data.reserve(sizeof(uint32_t) + robot_name.size() + 
+              sizeof(uint32_t) + send_topic.size() + 
+              sizeof(uint32_t) + type.size() + 
+              sizeof(uint32_t) + msg.size());
+
+  data.push_back(uint8_t(robot_name.size() >> 0));
+  data.push_back(uint8_t(robot_name.size() >> 8));
+  data.push_back(uint8_t(robot_name.size() >> 16));
+  data.push_back(uint8_t(robot_name.size() >> 24));
+  data.insert(data.end(), (uint8_t *)robot_name.data(), (uint8_t *)robot_name.data() + robot_name.size());
+
+  data.push_back(uint8_t(send_topic.size() >> 0));
+  data.push_back(uint8_t(send_topic.size() >> 8));
+  data.push_back(uint8_t(send_topic.size() >> 16));
+  data.push_back(uint8_t(send_topic.size() >> 24));
+  data.insert(data.end(), (uint8_t *)send_topic.data(), (uint8_t *)send_topic.data() + send_topic.size());
 
   data.push_back(uint8_t(type.size() >> 0));
   data.push_back(uint8_t(type.size() >> 8));
@@ -288,6 +344,24 @@ void ZmqTransport::send_publish(const std::string &topic, const std::string &typ
   data.insert(data.end(), msg.data(), msg.data() + msg.size());
 
   send_zmq(data.data(), data.size());
+}
+
+
+void ZmqTransport::set_robotnames(std::vector<std::string> vectorRobotname)
+{
+  m_vectorRobotname = vectorRobotname;
+}
+
+std::string ZmqTransport::find_robotname(std::string topic) const
+{
+  for (unsigned int i= 0; i <m_vectorRobotname.size(); i++) {
+    std::string target_name = m_vectorRobotname[i];
+    if (topic.rfind("/"+target_name+"/", 0) == 0) {
+      LOG("    find_robotname, target_name: " << target_name << ", topic: " << topic);
+      return target_name;
+    }
+  }
+  return NONE_ROBOT_NAME;
 }
 
 uint32_t ZmqTransport::get32le(size_t offset) const

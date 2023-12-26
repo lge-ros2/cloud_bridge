@@ -20,6 +20,7 @@
 #include <tf2_msgs/msg/tf_message.hpp>
 
 #include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 #include "cloud_bridge/bridge_rcl_node.hpp"
 #include "cloud_bridge/zmq_transport.hpp"
 #include "cloud_bridge/logging.hpp"
@@ -28,7 +29,6 @@
 #include <mutex>
 
 using namespace std;
-
 
 class CloudBridgeBase: public rclcpp::Node
 {
@@ -41,6 +41,7 @@ protected:
   virtual bool Connect() { return true; };
   void initBridgeRclNode();
   void initBridgeParams();
+  void setServerName();
 
   uint32_t get32le(std::vector<uint8_t> buffer, size_t size) const;
 
@@ -77,6 +78,9 @@ private:
   rcl_allocator_t bridge_node_alloc_;
   BridgeRclNode* bridge_rcl_node_;
   
+  std::string m_namespace;
+  std::string m_robotName;
+  std::vector<std::string> m_vectorNamespace;
   std::vector<std::string> m_vectorSubTopic;
   std::vector<std::string> m_vectorPubTopic;
   std::vector<std::string> m_vectorParams;

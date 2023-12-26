@@ -46,6 +46,7 @@ CloudBridgeServer::CloudBridgeServer(string nodeName)
   ERROR("\t host_req: " << m_iHostReqPort);
   ERROR("\t host_rep: " << m_iHostRepPort);
 
+  setServerName();
   Setup();
   initBridgeRclNode(); // from CloudBridgeBase
   initBridgeParams();  // from CloudBridgeBase

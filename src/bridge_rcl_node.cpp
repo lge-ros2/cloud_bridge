@@ -254,12 +254,10 @@ void BridgeRclNode::spin_service_server()
     }
 }
 
-
-
 rmw_qos_profile_t BridgeRclNode::parseQosString(std::string qos_string)
 {
   rmw_qos_profile_t qos = rmw_qos_profile_default;
-  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+//   qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
   if(qos_string == "sensor_data") {
     qos = rmw_qos_profile_sensor_data;
   } else if(qos_string == "parameters") {
@@ -270,6 +268,8 @@ rmw_qos_profile_t BridgeRclNode::parseQosString(std::string qos_string)
     qos = rmw_qos_profile_system_default;
   } else if(qos_string == "services_default") {
     qos = rmw_qos_profile_services_default;
+  } else if(qos_string == "transient_local") {
+    qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
   }
 
   return qos;
