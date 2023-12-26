@@ -1,25 +1,55 @@
 /**:
   ros__parameters:
-    cloud_ip: "127.0.0.1"
-    manage_port: 26565
+    cloud_ip: "112.220.105.114"
+    manage_port: 35950
     sub_clock: True
     sub_list:
-    - scan
-    - tf_static
-    - odom
-    - imu
-    - initialpose
-    - move_simple
-    - clock
-    - bt_elev
-    - bt_elev_cancel
-    - color_compressed
-    - move_simple
-    - goal_pose
-    - demo_node_talker
-    tf_list:
-    - odom_basefootprint
-    # srv_server_list:
-    # - load_map
+    #- scan
+    #- tf_static
+    #- odom
+    #- imu
+    #- initialpose
+    #- move_simple
+    #- clock
+    #- bt_elev
+    #- bt_elev_cancel
+    #- color_compressed
+    #- move_simple
+    #- goal_pose
+      - demo_node_talker_client
+    # - core_deviceInfo
+    # - core_actionInfo
+    # - core_errorInfo
+    # - core_sensorInfo
+    # - core_locationInfo
+    # - core_pushMessageInfo
+    # - core_messageInfo
+    # - core_modeInfo
+    # - core_movePathInfo
+    # - core_batteryInfo
+    # - core_expendableInfo
+    # - core_deviceId
+    # - hldsinfo
+    # # - realsense_camera_front_image
+    # - action_status
+    # - amcl_pose
+    # - hlds_orderready
+    - pendulum_joint_states
+    # - plan
+      #tf_list:
+      #- odom_basefootprint
+    srv_server_list:
+    #- load_map
+    - core_registerRobot
+    - core_unregisterRobot
     # srv_client_list:
     # - add_two_ints
+    srv_client_list:
+    - docking
+    - undocking
+    - stop
+    - get_poi
+~                                                                                                                                                                                                            
+~                                                                                                                                                                                                            
+~                                                                                                                                                                                                            
+~                              

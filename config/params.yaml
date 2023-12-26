@@ -1,7 +1,63 @@
 /**:
   ros__parameters:
     use_sim_time: True
-    
+
+    plan:
+      topic: "plan"
+      msg: "nav_msgs/msg/Path"
+      qos: "system_default"
+
+    goal:
+      topic: "goal"
+      msg: "geometry_msgs/msg/Point"
+      qos: "system_default"
+
+    move2poi:
+      topic: "control/move2poi"
+      msg: "std_msgs/msg/String"
+      qos: "system_default"
+
+    rotate:
+      topic: "control/rotate"
+      msg: "std_msgs/msg/Int32"
+      qos: "system_default"
+
+    set_map_name:
+      topic: "set_map_name"
+      msg: "std_msgs/msg/String"
+      qos: "system_default"
+
+    initial_pose:
+      topic: "initial_pose"
+      msg: "geometry_msgs/msg/Pose2D"
+      qos: "system_default"
+
+    amcl_pose:
+      topic: "amcl_pose"
+      msg: "geometry_msgs/msg/PoseWithCovarianceStamped"
+      qos: "system_default"
+
+    action_status:
+      topic: "action_status"
+      msg: "lgnav_action_msgs/msg/ActionStatus"
+      qos: "system_default"
+
+    docking:
+      service: "control/docking"
+      srv: "std_srvs/srv/Trigger"
+
+    undocking:
+      service: "control/undocking"
+      srv: "std_srvs/srv/Trigger"
+
+    stop:
+      service: "control/stop"
+      srv: "std_srvs/srv/Trigger"
+
+    get_poi:
+      service: "control/get_poi"
+      srv: "lgnav_common_msgs/srv/GetStringArray"
+
     scan:
       topic: "scan"
       msg: "sensor_msgs/msg/LaserScan"
@@ -33,11 +89,6 @@
       topic: "/clock"
       msg: "rosgraph_msgs/msg/Clock"
 
-    plan:
-      topic: "plan"
-      msg: "nav_msgs/msg/Path"
-      qos: "sensor_data"
-
     map:
       topic: "map"
       msg: "nav_msgs/msg/OccupancyGrid"
@@ -64,7 +115,7 @@
     load_map:
       service: "load_map"
       srv: "nav2_msgs/srv/LoadMap"
-    
+
     map_odom:
       base_frame: "map"
       child_frame: "odom"
@@ -75,7 +126,7 @@
 
     odom_right_wheel:
       base_frame: "base_link"
-      child_frame: "RightWheel_link"      
+      child_frame: "RightWheel_link"
 
     call_elevator:
       service: "/elevator_system/call_elevator"
@@ -108,7 +159,7 @@
     bt_elev_feedback:
       topic: "navigate_with_elevator/feedback"
       msg: "std_msgs/msg/String"
-    
+
     bt_elev_result:
       topic: "navigate_with_elevator/result"
       msg: "std_msgs/msg/String"
@@ -116,7 +167,7 @@
     bt_elev_cancel:
       topic: "navigate_with_elevator/cancel"
       msg: "std_msgs/msg/Empty"
-    
+
     nav2_status:
       topic: "NavigateToPose/_action/status"
       msg: "action_msgs/msg/GoalStatusArray"
@@ -124,13 +175,18 @@
     color_compressed:
       topic: "front/color/image_raw/compressed"
       msg: "sensor_msgs/msg/CompressedImage"
-    
+
     add_two_ints:
       service: "/add_two_ints"
       srv: "example_interfaces/srv/AddTwoInts"
 
-    demo_node_talker:
-      topic: "/chatter"
+    demo_node_talker_client:
+      topic: "/chatter_client"
+      msg: "std_msgs/msg/String"
+      qos: "system_default"
+
+    demo_node_talker_server:
+      topic: "/chatter_server"
       msg: "std_msgs/msg/String"
       qos: "system_default"
 
@@ -138,70 +194,146 @@
       service: "/core_registerRobot"
       srv: "ebme_interfaces/srv/RegisterInfo"
 
-    core_sendActionInfo:
-      service: "/core_sendActionInfo"
-      srv: "ebme_interfaces/srv/ActionInfo"
-
-    core_sendBatteryInfo:
-      service: "/core_sendBatteryInfo"
-      srv: "ebme_interfaces/srv/BatteryInfo"
-
-    core_sendDeviceState:
-      service: "/core_sendDeviceState"
-      srv: "ebme_interfaces/srv/Device"
-
-    core_sendErrorInfo:
-      service: "/core_sendErrorInfo" 
-      srv: "ebme_interfaces/srv/ErrorInfo"
-
-    core_sendExpendableInfo:
-      service: "/core_sendExpendableInfo"
-      srv: "ebme_interfaces/srv/ExpendableInfo"
-
-    core_sendLocationInfo:
-      service: "/core_sendLocationInfo"
-      srv: "ebme_interfaces/srv/LocationInfo"
-
-    core_sendMessage:
-      service: "/core_sendMessage"
-      srv: "ebme_interfaces/srv/Message"
-
-    core_sendModeInfo:
-      service: "/core_sendModeInfo"
-      srv: "ebme_interfaces/srv/ModeInfo"
-
-    core_sendPushMessage:
-      service: "/core_sendPushMessage"
-      srv: "ebme_interfaces/srv/PushMessage"
-
-    core_sendRobotExpendableListInfo:
-      service: "/core_sendRobotExpendableListInfo"
-      srv: "ebme_interfaces/srv/ExpendableInfo"
-
-    core_sendRobotMapListInfo:
-      service: "/core_sendRobotMapListInfo"
-      srv: "ebme_interfaces/srv/MapInfo"
-
-    core_sendRobotMovePathListInfo:
-      service: "/core_sendRobotMovePathListInfo"
-      srv: "ebme_interfaces/srv/MovePathInfo"
-
-    core_sendRobotPoiListInfo:
-      service: "/core_sendRobotPoiListInfo"
-      srv: "ebme_interfaces/srv/PoiInfo"
-
-    core_sendRobotResourceListInfo:
-      service: "/core_sendRobotResourceListInfo"
-      srv: "ebme_interfaces/srv/ResourceInfo"
-
-    core_sendRobotSensorListInfo:
-      service: "/core_sendRobotSensorListInfo"
-      srv: "ebme_interfaces/srv/SensorInfo"
-
-    core_sendSensorInfo:
-      service: "/core_sendSensorInfo"
-      srv: "ebme_interfaces/srv/SensorInfo"
-
     core_unregisterRobot:
       service: "/core_unregisterRobot"
       srv: "ebme_interfaces/srv/RegisterInfo"
+
+    core_deviceInfo:
+      topic: "/core_deviceInfo"
+      msg: "ebme_interfaces/msg/DeviceInfo"
+      qos: "sensor_data"
+
+    core_actionInfo:
+      topic: "/core_actionInfo"
+      msg: "ebme_interfaces/msg/ActionInfo"
+      qos: "sensor_data"
+
+    core_errorInfo:
+      topic: "/core_errorInfo"
+      msg: "ebme_interfaces/msg/ErrorInfo"
+      qos: "sensor_data"
+
+    core_sensorInfo:
+      topic: "/core_sensorInfo"
+      msg: "ebme_interfaces/msg/SensorInfo"
+      qos: "sensor_data"
+
+    core_locationInfo:
+      topic: "/core_locationInfo"
+      msg: "ebme_interfaces/msg/LocationInfo"
+      qos: "sensor_data"
+
+    core_pushMessageInfo:
+      topic: "/core_pushMessageInfo"
+      msg: "ebme_interfaces/msg/PushMessageInfo"
+      qos: "sensor_data"
+
+    core_messageInfo:
+      topic: "/core_messageInfo"
+      msg: "ebme_interfaces/msg/MessageInfo"
+      qos: "sensor_data"
+
+    core_modeInfo:
+      topic: "/core_modeInfo"
+      msg: "ebme_interfaces/msg/ModeInfo"
+      qos: "sensor_data"
+
+    core_movePathInfo:
+      topic: "/core_movePathInfo"
+      msg: "ebme_interfaces/msg/MovePathInfo"
+      qos: "sensor_data"
+
+    core_batteryInfo:
+      topic: "/core_batteryInfo"
+      msg: "ebme_interfaces/msg/BatteryInfo"
+      qos: "sensor_data"
+
+    core_expendableInfo:
+      topic: "/core_expendableInfo"
+      msg: "ebme_interfaces/msg/ExpendableInfo"
+      qos: "sensor_data"
+
+    core_deviceId:
+      topic: "/core_deviceId"
+      msg: "ebme_interfaces/msg/DeviceId"
+      qos: "sensor_data"
+
+    hldsinfo:
+      topic: "hlds/hldsinfo"
+      msg: "ebme_interfaces/msg/HldsLidarInfoList"
+      qos: "sensor_data"
+
+    critical_data:
+      topic: "/critical_data"
+      msg: "std_msgs/msg/Header"
+      qos: "sensor_data"
+
+    sensor_data_best_effort:
+      topic: "/sensor_data_best_effort"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    large_depth_1_data:
+      topic: "/large_depth_1_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    large_depth_50_data:
+      topic: "/large_depth_50_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    small_depth_1_data:
+      topic: "/small_depth_1_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    small_depth_50_data:
+      topic: "/small_depth_50_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    large_data:
+      topic: "/large_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    medium_data:
+      topic: "/medium_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    small_data:
+      topic: "/small_data"
+      msg: "std_msgs/msg/Header"
+      qos: "system_default"
+
+    realsense_camera_front_image:
+      topic: "realsense_cameraservice_publish_front_image/compressed"
+      msg: "sensor_msgs/msg/CompressedImage"
+      qos: "sensor_data"
+
+    hlds_orderinfo:
+      topic: "hlds/orderinfo"
+      msg: "ebme_interfaces/msg/OrderInfoList"
+      qos: "sensor_data"
+
+    hlds_orderready:
+      topic: "hlds/orderready"
+      msg: "ebme_interfaces/msg/OrderInfoList"
+      qos: "sensor_data"
+
+    pendulum_joint_states:
+      topic: "/pendulum_joint_states"
+      msg: "pendulum2_msgs/msg/JointState"
+      qos: "sensor_data"
+
+    joint_command:
+      topic: "/joint_command"
+      msg: "pendulum2_msgs/msg/JointCommand"
+      qos: "seonsor_data"
+
+    pendulumTelop:
+      topic: "/teleop"
+      msg: "pendulum2_msgs/msg/PendulumTeleop"
+      qos: "sensor_data"

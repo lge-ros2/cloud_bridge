@@ -5,21 +5,47 @@
     pub_port: 26567
     req_port: 26568
     rep_port: 26569
-    host_sub_port: 26566
-    host_pub_port: 26567
-    host_req_port: 26568
-    host_rep_port: 26569
+    host_sub_port: 35951
+    host_pub_port: 35952
+    host_req_port: 35953
+    host_rep_port: 35954
     sub_list:
-    - cmd_vel
-    - plan
-    - footprint
-    - map
-    - bt_elev_feedback
-    - bt_elev_result
-    - nav2_status
-    tf_list:
-    - map_odom
+    #- cmd_vel
+    #- footprint
+    #- map
+    #- bt_elev_feedback
+    #- bt_elev_result
+    #- nav2_status
+    - demo_node_talker_server
+    #- critical_data
+    #- sensor_data_best_effort
+    #- large_depth_1_data
+    #- large_depth_50_data
+    #- small_depth_1_data
+    #- small_depth_50_data
+    #- large_data
+    #- medium_data
+    #- small_data
+    # - plan
+    # - goal
+    # - hlds_orderinfo
+    # - move2poi
+    # - rotate
+    # - set_map_name
+    # - initial_pose
+    - joint_command
+    - pendulumTelop
+    #tf_list:
+    #- map_odom
     # srv_server_list:
     # - add_two_ints
-    # srv_client_list:
-    # - load_map
+    srv_server_list:
+    - docking
+    - undocking
+    - stop
+    - get_poi
+    srv_client_list:
+    #- load_map
+    - core_registerRobot
+    - core_unregisterRobot
+~                                     
