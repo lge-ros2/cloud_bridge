@@ -1,11 +1,9 @@
 FROM lgecloudroboticstask/ros:alpine-ros
 
-SHELL ["/bin/sh", "-c"]
-
 ENV HOSTNAME cloud_bridge
 
 RUN mkdir /root/src
-RUN apk add --no-cache git
+RUN apk add --no-cache git bash
 RUN git clone -b ${ROS_DISTRO} https://github.com/lge-ros2/cloud_bridge /root/src/cloud_bridge/
 WORKDIR /root/src
 
@@ -14,10 +12,10 @@ RUN rosdep install -y -r -q --from-paths cloud_bridge --ignore-src --rosdistro $
 
 # install colcon
 RUN apk add --no-cache python3-dev py3-pip build-base zeromq-dev\
-    && pip3 install -U setuptools wheel colcon-common-extensions colcon-ros-bundle \
+    && pip3 install -U setuptools colcon-common-extensions colcon-ros-bundle \
     && rm -rf /var/cache/apk/*
 
-RUN ["/bin/sh", "-c", "source /usr/ros/${ROS_DISTRO}/setup.sh; colcon build --packages-up-to cloud_bridge"]
+RUN ["/bin/bash", "-c", "source /usr/ros/${ROS_DISTRO}/setup.sh; colcon build --packages-up-to cloud_bridge"]
 
 COPY ./docker/config/server.yaml ./docker/config/client.yaml ./docker/config/params.yaml /opt/
 COPY ./_entrypoint.sh /
@@ -35,4 +33,4 @@ STOPSIGNAL SIGKILL
 
 RUN chmod +x /_entrypoint.sh
 
-CMD ["/bin/sh", "-c", "sh /_entrypoint.sh"]
+CMD ["/bin/bash", "-c", "sh /_entrypoint.sh"]
