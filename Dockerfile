@@ -33,4 +33,6 @@ STOPSIGNAL SIGKILL
 
 RUN chmod +x /_entrypoint.sh
 
-CMD ["/bin/bash", "-c", "sh /_entrypoint.sh"]
+ENTRYPOINT ["/_entrypoint.sh"]
+
+CMD ["bash"]
