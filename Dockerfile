@@ -17,7 +17,7 @@ RUN apk add --no-cache python3-dev py3-pip build-base zeromq-dev\
 
 RUN ["/bin/bash", "-c", "source /usr/ros/${ROS_DISTRO}/setup.sh; colcon build --packages-up-to cloud_bridge"]
 
-COPY ./docker/config/server.yaml ./docker/config/client.yaml ./docker/config/params.yaml /opt/
+COPY ./docker/config/server.yaml ./docker/config/client.yaml ./docker/config/params.yaml /root/src/cloud_bridge/config/
 COPY ./_entrypoint.sh /
 
 ARG cloud_ip
